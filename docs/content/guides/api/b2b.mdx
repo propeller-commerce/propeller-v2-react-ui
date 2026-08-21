@@ -1,0 +1,83 @@
+---
+title: B2B — authorization & configurators
+---
+
+# B2B — authorization & configurators
+
+B2B storefronts add two concerns the B2C flow does not have: **purchase
+authorization** (spend limits and approval workflows) and **configurable
+products** (clusters). Three composables cover them:
+`usePurchaseAuthorizationConfigurator`,
+`usePurchaseAuthorizationRequests` and `useClusterConfigurator`.
+
+Signatures:
+[`usePurchaseAuthorizationConfigurator`](/api/functions/usePurchaseAuthorizationConfigurator),
+[`usePurchaseAuthorizationRequests`](/api/functions/usePurchaseAuthorizationRequests),
+[`useClusterConfigurator`](/api/functions/useClusterConfigurator).
+
+## Purchase authorization, in context
+
+A B2B `Contact` can hold a **purchase-authorization config (PAC)** scoped to
+a company — a `PURCHASER` role with an `authorizationLimit`. When a cart's
+gross total exceeds that limit, the contact cannot check out directly; the
+cart must be **submitted for authorization** to someone with approval
+rights.
+
+This is why [`useCart`](/guides/api/cart) exposes:
+
+- `checkoutAllowed` — `false` when the cart exceeds the contact's PAC limit.
+- `requestAuthorization()` — calls `cart.requestCartAuthorization` to submit
+  the cart for approval.
+
+The two composables below manage the rules and the approval queue.
+
+## `usePurchaseAuthorizationConfigurator`
+
+Manage a company's PAC rules — who can purchase, up to what limit, who
+approves.
+
+```tsx
+const pac = usePurchaseAuthorizationConfigurator({
+  graphqlClient,
+  companyId,
+});
+```
+
+It calls `services.purchaseAuthConfig` to read and mutate PAC entries. The
+options object carries callbacks; because that object is recreated each
+render, the hook stores it in a ref (`cbRef.current = options`) so handlers
+always see the latest callbacks without stale closures. Returns the editable
+rows, an add-contact form state, and save/delete actions — each resolving to
+a result object.
+
+## `usePurchaseAuthorizationRequests`
+
+The approval queue — carts other contacts have submitted for authorization.
+
+```tsx
+const requests = usePurchaseAuthorizationRequests({ graphqlClient, companyId });
+```
+
+Calls `services.purchaseAuthConfig` to list pending authorization requests
+and to approve or reject them. An approver uses this to clear (or decline)
+carts that exceeded a purchaser's limit.
+
+## `useClusterConfigurator`
+
+A **cluster** is a configurable product — a family of variant products
+narrowed by selecting option values (size, colour, material…).
+`useClusterConfigurator` holds the selection state and resolves it to a
+concrete product.
+
+```tsx
+const configurator = useClusterConfigurator({ /* cluster, services */ });
+```
+
+As the user picks option values it narrows the candidate set and recomputes
+pricing via `services.cluster` (`getClusterConfig` and related methods).
+When the selection resolves to a single buyable product, that product flows
+into [`AddToCart`](/api/variables/AddToCart) like any other.
+
+Unlike most data hooks, `useClusterConfigurator` is primarily a **selection
+state machine** — its API calls are the cluster-config lookups needed to
+validate and price the current selection, not a fetch-on-mount data load.

@@ -1,0 +1,69 @@
+---
+title: The SDK seam
+---
+
+# The SDK seam
+
+This is the one architectural idea to understand before using the
+package.
+
+## The package ships no GraphQL client
+
+There is **no** `graphqlClient` singleton exported from the package, and
+**no** hardcoded API endpoint. GraphQL transport is application-specific:
+
+- A Next.js app may proxy requests through a route handler that adds the
+  API key and handles auth.
+- A Vite SPA may call the upstream API directly.
+- Another app may use a custom rewrite, a service worker, or a different
+  auth-token resolver.
+
+Baking a URL or an environment-variable convention into a component
+library would lock it to one app shape. So the package doesn't.
+
+## The contract: three steps
+
+1. **You construct the `GraphQLClient`** from `propeller-sdk-v2`, with
+   your endpoint, headers and auth resolver.
+2. **You call `createServices(client)`** once — it returns a typed
+   `Services` bundle (`product`, `cart`, `user`, `order`, …) keyed to
+   that client.
+3. **You pass both** `graphqlClient` and `services` into
+   `<PropellerProvider>`.
+
+```tsx
+import { GraphQLClient } from 'propeller-sdk-v2';
+import { createServices } from 'propeller-v2-react-ui';
+
+const graphqlClient = new GraphQLClient({ endpoint: '/api/graphql', apiKey: '' });
+const services = createServices(graphqlClient);
+```
+
+Inside the provider, every component and composable reads the services
+via `useServices()` — they never instantiate the SDK themselves.
+
+## `createServices`
+
+A pure factory. It builds one bundle of SDK service instances and
+memoises it per client (via a `WeakMap`), so calling it again with the
+same client returns the same bundle. After login/logout the SDK mutates
+the client's headers in place — the cached services keep working without
+a rebuild.
+
+## `toPlain`
+
+The SDK returns class instances whose getters forward to
+underscore-prefixed backing fields (`_items`, `_firstName`). Anything that
+serialises them (JSON, React state diffing) sees the underscored shape.
+`toPlain(value)` recursively strips that prefix so downstream code sees
+the clean public type. Apply it once at the service boundary.
+
+## No server entry
+
+The package used to have a `/server` entry. It was removed — server-side
+wiring (endpoint, API keys, cookie names, auth) is just as
+application-specific as the client. If you fetch Propeller data in a
+Server Component, host that code in your own app; `createServices` is
+exported from `propeller-v2-react-ui/shared` so you can build a bundle
+around a server-side client without pulling the client bundle into the
+server graph. See [Server Components](/server-components).

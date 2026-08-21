@@ -1,0 +1,125 @@
+---
+title: Cart & checkout
+---
+
+# Cart & checkout
+
+The cart and checkout flow is driven by two composables — `useCart` and
+`useCheckout` — backed by three framework-agnostic orchestration helpers
+(`initCart`, `fetchActiveCart`, `mergeAnonymousCart`). This page explains
+which SDK services each one calls and when.
+
+For exact signatures see [`useCart`](/api/functions/useCart),
+[`useCheckout`](/api/functions/useCheckout) and the related option/return
+interfaces in the [API reference](/api).
+
+## `useCart`
+
+```tsx
+import { useCart } from 'propeller-v2-react-ui';
+
+const cart = useCart({
+  graphqlClient,
+  user,                 // Contact | Customer | null
+  companyId,            // optional — B2B
+  language: 'NL',
+  cartId,               // optional — resume a known cart
+  onCartCreated: (c) => { /* persist c.cartId */ },
+});
+```
+
+It returns the current `cart`, `cartId`, `loading`, `error`,
+`checkoutAllowed`, and a set of async actions. Every action delegates to
+`services.cart` (a `CartService`) or `services.crossupsell`.
+
+### How it talks to the API
+
+| Action | SDK calls | Notes |
+| --- | --- | --- |
+| `resolveCart()` | `initCart()` → `cart.getCarts`, `cart.getCart`, `cart.startCart`, `cart.updateCartAddress` | The 3-step init below |
+| `addItem(opts)` | `cart.addItemToCart` | Optionally validates stock first |
+| `updateItemQuantity(id, qty)` | `cart.updateCartItem` | — |
+| `updateItemNotes(id, notes)` | `cart.updateCartItem` | **Debounced** — see below |
+| `deleteItem(id)` | `cart.deleteCartItem` | — |
+| `addActionCode(code)` / `removeActionCode(code)` | `cart.addActionCode` / `cart.deleteActionCode` | Promo codes |
+| `requestAuthorization()` | `cart.requestCartAuthorization` | B2B — see [B2B](/guides/api/b2b) |
+| `processCart(status)` | `cart.processCart` | Converts cart → order/quote |
+| `getCrossupsells(opts)` | `crossupsell.getOtherProducts` | Cross/up-sell products |
+
+### The 3-step cart resolution (`initCart`)
+
+`resolveCart()` (and `useProductBundles`) call the shared
+[`initCart`](/api/functions/initCart) helper:
+
+1. **Find** — search for an existing `OPEN` cart for this user
+   (`cart.getCarts` filtered by `contactIds`/`customerIds` and, for B2B,
+   `companyIds`). If found, fetch it fully with `cart.getCart` and return.
+2. **Create** — if none exists, `cart.startCart` creates a new cart, scoped
+   to the contact/customer (and company) when a user is present.
+3. **Address** — assign the user's default invoice and delivery addresses
+   to the new cart with `cart.updateCartAddress`. This step is best-effort:
+   a failure is swallowed (the user can still set addresses at checkout).
+
+`onCartCreated` fires whenever a cart is resolved or created — use it to
+persist the `cartId` (anonymous carts have no user to key off).
+
+### Debounced notes
+
+`updateItemNotes` does **not** call the API on every keystroke. It debounces
+per cart-item (timers held in a ref) so a burst of typing collapses into one
+`cart.updateCartItem` call. Pass a custom `debounceMs` to override.
+
+### `checkoutAllowed`
+
+A derived boolean. For a B2B `Contact` with a purchase-authorization limit,
+it compares the cart's gross total against the limit and returns `false`
+when the cart exceeds it — the UI uses this to switch the checkout button
+into a "request authorization" action. See [B2B](/guides/api/b2b).
+
+## `useCheckout`
+
+```tsx
+import { useCheckout } from 'propeller-v2-react-ui';
+
+const checkout = useCheckout({ graphqlClient, user, companyId, language: 'NL' });
+```
+
+`useCheckout` encapsulates the multi-step order placement flow. All calls go
+through `services.cart`, `services.address` and `services.order`.
+
+| Action | SDK calls | Purpose |
+| --- | --- | --- |
+| `populateCartAddresses(cart)` | `cart.updateCartAddress` | Pre-fill cart from the user's saved default addresses |
+| `updateCartAddress(cartId, input)` | `cart.updateCartAddress` | Set one invoice/delivery address |
+| `updateCartShipping(cartId, input)` | `cart.updateCart` | Set carrier + payment method |
+| `placeOrder(opts)` | `cart.processCart` → `order.setOrderStatus` → (quote) `order.triggerQuoteSendRequest` | Convert cart to an order or quote request |
+| `updateUserAccountAddress(data, type)` | `address.updateAddress` | Sync an in-checkout address edit back to the user's account |
+
+### Placing an order
+
+`placeOrder` runs three steps in sequence:
+
+1. `processCart` converts the cart into an order (the cart is consumed).
+2. `setOrderStatus` sets the order to `NEW` (a real order) or `REQUEST`
+   (a quote request), per `PlaceOrderOptions.orderStatus`.
+3. For a quote (`isQuoteMode`), `triggerQuoteSendRequest` notifies the
+   backend to send the quote.
+
+It resolves to `{ success, orderId?, error? }` — no throw. On success,
+`orderId` is the new order's id; route the user to a confirmation page.
+
+## Anonymous → authenticated cart merge
+
+When an anonymous visitor logs in, their anonymous cart should not be lost.
+[`mergeAnonymousCart`](/api/functions/mergeAnonymousCart) copies items from
+the anonymous cart into the user's cart by replaying each line through
+`cart.addItemToCart` (serial calls — the backend has no bulk-merge
+mutation). Call it in your post-login flow, after `useAuth().login()`
+succeeds and `useCart` has resolved the authenticated cart.
+
+## `fetchActiveCart`
+
+[`fetchActiveCart`](/api/functions/fetchActiveCart) is the lower-level
+"find the user's OPEN cart" primitive (`cart.getCarts` by contact/customer
+id, company-filtered). `initCart` builds on it; use it directly only when
+you want a read-only lookup with no create-or-address side effects.

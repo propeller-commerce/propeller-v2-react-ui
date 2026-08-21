@@ -1,0 +1,117 @@
+---
+title: Authentication & accounts
+---
+
+# Authentication & accounts
+
+Three composables cover identity and account data: `useAuth` (login,
+registration, password reset), `useCompany` (B2B company switching) and
+`useAddress` (address CRUD). This page explains their API calls and the
+auth-token lifecycle — the part most worth getting right.
+
+Signatures: [`useAuth`](/api/functions/useAuth),
+[`useCompany`](/api/functions/useCompany),
+[`useAddress`](/api/functions/useAddress).
+
+## The auth-token lifecycle
+
+This is the single most important thing to understand.
+
+`useAuth().login()` calls `services.login.login()`, receives a session with
+an `accessToken`, and then:
+
+```ts
+// inside useAuth — simplified
+const cfg = graphqlClient.getConfig();
+graphqlClient.updateConfig({
+  headers: { ...cfg.headers, Authorization: `Bearer ${accessToken}` },
+});
+onAuthHeaderUpdate?.(accessToken);
+```
+
+- The Bearer header is set **in memory only**, on the `GraphQLClient`, for
+  the rest of the page session. From that point every composable's calls
+  are authenticated, because they all share that client.
+- It **deliberately does not** call `graphqlClient.setAccessToken()` — the
+  SDK's default resolver for that persists the JWT to
+  `localStorage['access_token']`, which is an XSS exposure. The package
+  will not do that for you.
+- **Cross-reload auth is your responsibility.** The recommended pattern:
+  your `onAuthHeaderUpdate` callback POSTs the token to your own backend,
+  which sets an **httpOnly cookie**; your GraphQL proxy route then injects
+  the Bearer header server-side on every request. The token never touches
+  client-readable storage.
+
+So: `useAuth` authenticates the *current page session* in memory and hands
+you the token; persisting it safely across reloads is wired in your app.
+
+## `useAuth`
+
+```tsx
+const { login, registerContact, registerCustomer, forgotPassword,
+        loading, error } = useAuth({ graphqlClient, onAuthHeaderUpdate });
+```
+
+| Action | SDK calls | Notes |
+| --- | --- | --- |
+| `login(email, password)` | `login.login` → `user.getViewer` | Sets the in-memory Bearer header; returns the user |
+| `registerContact(input)` | `company.createCompany` → `user.registerContact` → `login.login` → `address.createCompanyAddress` | B2B contact — see ordering below |
+| `registerCustomer(input)` | `user.registerCustomer` → `login.login` → `address.createCustomerAddress` | B2C customer |
+| `forgotPassword(email)` | `user.sendPasswordResetEmail` | Fire-and-forget reset email |
+
+All four resolve to a result object (`LoginResult` or
+`{ success, error? }`) — none throw.
+
+### Registration ordering matters
+
+`registerContact` and `registerCustomer` **log in before creating
+addresses**. `createCompanyAddress` / `createCustomerAddress` are
+account-scoped mutations the backend authorises against the logged-in
+user — calling them anonymously (API key only) returns `FORBIDDEN`. So the
+flow is: create the account → `login()` (sets the Bearer header) → create
+addresses with that authenticated session.
+
+If `autoLogin` is `false`, the implicit login is still performed for the
+address step, then **dropped afterwards** (`graphqlClient.clearAccessToken()`
+and the in-memory `Authorization` header is stripped) so the caller does not
+observe a logged-in state it did not ask for.
+
+### `getViewer` and tracked attributes
+
+After login, `user.getViewer` fetches the full `Contact`/`Customer`. The
+`configuration` option lets you request extra tracked attributes
+(`contactTrackAttributes`, `companyTrackAttributes`, …) and a contact
+PA-config sub-selection — these become part of the `ViewerInput` sent to the
+backend.
+
+## `useCompany`
+
+```tsx
+const company = useCompany({ graphqlClient, user, companyId });
+```
+
+For B2B contacts that belong to multiple companies. It calls
+`services.company` to list the contact's companies and switch the active
+one. `graphqlClient` is typed `GraphQLClient | null | undefined` so the hook
+can be called unconditionally (Rules of Hooks) before the client is ready —
+its methods return a `{ success: false, error }` result until a client is
+present.
+
+Switching the active company changes the `companyId` used for cart lookup,
+pricing and authorization downstream — feed the result back into your
+`PropellerProvider` value so the whole tree re-resolves.
+
+## `useAddress`
+
+```tsx
+const address = useAddress({ graphqlClient, user, companyId });
+```
+
+CRUD over the user's saved addresses, via `services.address`
+(`createAddress`, `updateAddress`, `deleteAddress`). Like `useCompany`, it
+accepts a nullable `graphqlClient` and its mutations bail with a result
+object — never a throw — when the client or user is absent.
+
+Address mutations are account-scoped: the user must be authenticated (the
+in-memory Bearer header from `useAuth().login()` must be set), or the
+backend rejects them.

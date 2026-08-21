@@ -1,0 +1,68 @@
+---
+title: Server Components
+---
+
+# Server Components
+
+## Two entry points
+
+| Import path                    | Contents                                              | Runtime          |
+| ------------------------------ | ----------------------------------------------------- | ---------------- |
+| `propeller-v2-react-ui`        | Components, hooks, contexts, `createServices`, `toPlain` | Client           |
+| `propeller-v2-react-ui/shared` | `createServices`, `toPlain`, formatters, helpers, types | Server & Client  |
+
+The main entry carries a `"use client"` directive — it bundles
+interactive components, so importing it into a Server Component pulls
+that whole tree client-side. The `/shared` entry is plain TypeScript
+with no directive — import the pure helpers and `createServices` from
+there when you want them server-side without forcing a client boundary.
+
+## Fetching data on the server
+
+The package ships no `/server` entry — server-side GraphQL wiring is
+application-specific. To fetch Propeller data in a Server Component, host
+a small module in your own app:
+
+```tsx
+// lib/server.ts — in YOUR app
+import 'server-only';
+import { cookies } from 'next/headers';
+import { GraphQLClient } from 'propeller-sdk-v2';
+import { createServices, toPlain } from 'propeller-v2-react-ui/shared';
+
+export function createServerClient() {
+  return new GraphQLClient({
+    endpoint: process.env.PROPELLER_GRAPHQL_ENDPOINT!,
+    apiKey: process.env.PROPELLER_API_KEY!,
+    securityMode: 'direct',
+    getAccessToken: async () => (await cookies()).get('access_token')?.value,
+  });
+}
+
+export async function fetchProduct(productId: number, language = 'NL') {
+  const services = createServices(createServerClient());
+  const result = await services.product.getProduct({
+    productId, language,
+    imageSearchFilters: {},
+    imageVariantFilters: { transformations: [{ name: 'large', transformation: { width: 800, height: 800 } }] },
+  });
+  return result ? toPlain(result) : null;
+}
+```
+
+> **Image transformations:** request at least one transformation in
+> `imageVariantFilters`. The backend only populates
+> `image.imageVariants[].url` for transformations you ask for — an empty
+> set returns images with no URLs.
+
+## The hybrid pattern
+
+A Server Component fetches the data and passes the serialisable result to
+a `'use client'` island that renders the interactive components. The
+display components (`ProductPrice`, `Breadcrumbs`, …) take everything as
+props, so they slot into either side.
+
+> **Serialisation gotcha:** functions cannot cross the server→client
+> boundary. If your config carries URL-builder functions, resolve the
+> URLs on the server and pass the strings, or move that subtree into a
+> deeper client island.

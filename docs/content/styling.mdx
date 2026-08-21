@@ -1,0 +1,62 @@
+---
+title: Styling
+---
+
+# Styling
+
+The package ships a precompiled stylesheet (`dist/styles.css`). Import it
+once at your app root; you do **not** need Tailwind in your own project.
+
+```ts
+import 'propeller-v2-react-ui/styles.css';
+```
+
+There are three ways to override the default look — pick the one that
+matches the scope of your change.
+
+## 1. Theme tokens
+
+The stylesheet declares CSS variables (`--primary`, `--card`, `--border`,
+`--radius-container`, …) at low specificity. Re-declare any of them in
+your own CSS and every component that resolves against that token
+re-skins instantly:
+
+```css
+:root {
+  --primary: #ff7043;
+  --card: #fafafa;
+  --radius-container: 12px;
+}
+```
+
+Scope-limited overrides work too — declare the variable on a wrapper
+class and only the components inside it change.
+
+## 2. BEM hooks
+
+Every styled element carries a BEM-style class alongside its utilities —
+`.propeller-product-card`, `.propeller-product-card__price`, and so on.
+The package emits its utilities inside `@layer utilities`, so an
+unlayered rule of yours that targets a BEM class wins by cascade order —
+no `!important` needed:
+
+```css
+.propeller-product-card__price {
+  font-weight: 700;
+  color: #b45309;
+}
+```
+
+## 3. Per-instance `className`
+
+Every component appends `props.className` on its root element, so a
+one-off override is a regular prop:
+
+```tsx
+<ProductCard product={p} className="ring-2 ring-amber-400" />
+```
+
+## Full reference
+
+The package's `STYLING.md` lists the complete token set and the BEM-hook
+catalogue, and explains the `@layer` cascade rule in detail.

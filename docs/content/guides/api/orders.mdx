@@ -1,0 +1,83 @@
+---
+title: Orders & quotes
+---
+
+# Orders & quotes
+
+Order history, order detail, PDF export and re-ordering are all handled by a
+single composable: `useOrders`. Favourites — adjacent account data — are
+covered by `useFavorites`.
+
+Signatures: [`useOrders`](/api/functions/useOrders),
+[`useFavorites`](/api/functions/useFavorites).
+
+## `useOrders`
+
+```tsx
+import { useOrders } from 'propeller-v2-react-ui';
+
+const orders = useOrders({
+  graphqlClient,
+  user,
+  companyId,
+  itemsPerPage: 10,
+  language: 'NL',
+});
+```
+
+It returns the order list, the loading/error state, pagination, and a set of
+actions. Calls go through `services.order` and — for re-ordering — the
+shared `initCart` helper.
+
+| Action | SDK calls | Purpose |
+| --- | --- | --- |
+| `search(form)` | `order.search` | Filter/sort the order list |
+| `getOrder(orderId)` | `order.getOrder` | Full detail for one order |
+| `downloadOrderPdf(orderId)` | `order.downloadOrderPdf` | Invoice/order PDF |
+| `downloadQuotePdf(orderId)` | `order.downloadQuotePdf` | Quote PDF |
+| `reorder(orderId)` | `order.getOrder` → `initCart` → `cart.addItemToCart` (per line) | Build a new cart from a past order |
+
+All actions resolve to result objects; the list/detail actions update the
+hook's state, the PDF actions return a downloadable payload.
+
+### Search and pagination
+
+`search` accepts an `OrderSearchForm` — date ranges (`DateSearchInput`),
+decimal/amount ranges (`DecimalSearchInput`), status filters and a sort
+key. Pagination is driven by the shared `usePagination` hook; `order.search`
+receives offset/limit from it and the hook updates totals from the response.
+
+### Re-ordering
+
+`reorder` is a small orchestration: fetch the original order
+(`order.getOrder`), resolve a fresh cart with
+[`initCart`](/api/functions/initCart), then replay each order line through
+`cart.addItemToCart`. Lines that are no longer purchasable are skipped; the
+result reports what was added. After it resolves, route the user to the cart
+([Cart & checkout](/guides/api/cart)).
+
+### PDF downloads
+
+`downloadOrderPdf` / `downloadQuotePdf` call the SDK's PDF endpoints and
+return the document for the browser to save. They require an authenticated
+session (the in-memory Bearer header from
+[`useAuth().login()`](/guides/api/auth)) — order documents are
+account-scoped.
+
+## `useFavorites`
+
+```tsx
+const favorites = useFavorites({ graphqlClient, user });
+```
+
+CRUD over the user's favourite lists, via `services.favoriteList`:
+
+| Action | SDK calls |
+| --- | --- |
+| create / update / delete a list | `favoriteList.createFavoriteList` / `updateFavoriteList` / `deleteFavoriteList` |
+| add / remove a product | `favoriteList.addProductToList` / `removeProductFromList` |
+
+Mutations apply **optimistic updates** — the local list state changes
+immediately and is reconciled (or rolled back) when the API call resolves —
+so the UI feels instant. All actions return `{ success, error? }` and never
+throw. Favourite lists are account-scoped, so the user must be authenticated.

@@ -1,0 +1,38 @@
+---
+title: Introduction
+slug: /
+---
+
+# propeller-v2-react-ui
+
+A React component library for **Propeller Commerce** storefronts. It ships
+ready-made e-commerce UI — product cards, grids, carts, checkout, account
+pages — together with headless hooks ("composables") that talk to the
+Propeller GraphQL API, plus the shared utilities and types those parts
+build on.
+
+The package is framework-agnostic: it runs in any React 18+ app — Next.js
+(App Router or Pages Router), Vite/CRA SPAs, Remix — and ships its own
+precompiled stylesheet, so you do **not** need Tailwind in your project to
+use it.
+
+## What's here
+
+- **[Getting started](/getting-started)** — install, peer dependencies,
+  and a first render.
+- **[The SDK seam](/sdk-seam)** — the one architectural idea you must
+  understand: the consumer owns the GraphQL client.
+- **[Styling](/styling)** — the three ways to override the look.
+- **[Server Components](/server-components)** — how the package behaves
+  under the Next.js App Router.
+- **[Component reference](/components)** — the catalogue of components,
+  grouped, with a link into Storybook for live examples and prop tables.
+- **[Storybook](/storybook)** — the component workbench.
+- **[Contributing](/contributing)** — for developers working on the
+  package itself.
+
+## Status
+
+The package is **pre-1.0** (`0.x`). The public API may change between
+minor versions until it stabilises; breaking changes are documented in
+the package's `MIGRATION.md`.

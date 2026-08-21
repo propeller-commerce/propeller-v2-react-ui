@@ -1,0 +1,14 @@
+# Normalize line endings to LF in the repository for all text files.
+# Prevents CRLF from Windows checkouts leaking into committed source —
+# important for files parsed by tooling sensitive to line endings
+# (e.g. MDX/Docusaurus code fences) and for the GitLab->GitHub mirror.
+* text=auto eol=lf
+
+# Explicitly binary — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

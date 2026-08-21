@@ -1,0 +1,16 @@
+{
+  "//": "tsconfig used only by the docs TypeDoc run (docs/scripts/gen-api.js). It extends the base config but narrows the program to runtime source — test, mock and Storybook files import dev-only deps (vitest, @storybook/react) that are not package dependencies and must not be part of the generated API reference.",
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/__tests__/**",
+    "src/**/__mocks__/**",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx",
+    "src/**/*.stories.tsx"
+  ]
+}

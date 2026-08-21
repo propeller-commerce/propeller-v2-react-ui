@@ -1,0 +1,91 @@
+---
+title: Getting started
+---
+
+# Getting started
+
+## Install
+
+```bash
+npm install propeller-v2-react-ui propeller-sdk-v2
+```
+
+`propeller-sdk-v2` is a **peer dependency** — install it yourself so the
+package and your application share a single SDK instance.
+
+### Peer dependencies
+
+| Package            | Version | Required |
+| ------------------ | ------- | -------- |
+| `react`            | `>=18`  | Yes      |
+| `react-dom`        | `>=18`  | Yes      |
+| `propeller-sdk-v2` | `*`     | Yes      |
+
+There is **no dependency on Next.js**. Next.js apps work out of the box;
+nothing in the package imports `next/*`.
+
+## Import the stylesheet
+
+The package ships a precompiled stylesheet. Import it once, at your app
+root:
+
+```ts
+import 'propeller-v2-react-ui/styles.css';
+```
+
+You do not need Tailwind in your own project — the CSS is already
+compiled. (See [Styling](/styling) for how to override it.)
+
+## Wire the provider
+
+Every component resolves its infrastructure (the SDK services, the
+current user, language, currency, …) from a single `PropellerProvider`
+at the root of your tree. You construct a GraphQL client, build the
+services bundle, and hand both to the provider:
+
+```tsx
+import { GraphQLClient } from 'propeller-sdk-v2';
+import { PropellerProvider, createServices } from 'propeller-v2-react-ui';
+import 'propeller-v2-react-ui/styles.css';
+
+const graphqlClient = new GraphQLClient({
+  endpoint: '/api/graphql', // your endpoint / proxy path
+  apiKey: '',
+  timeout: 30_000,
+});
+const services = createServices(graphqlClient);
+
+export function App({ children }) {
+  return (
+    <PropellerProvider value={{
+      graphqlClient,
+      services,
+      user: null,        // your auth state
+      companyId: undefined,
+      language: 'NL',
+      includeTax: false,
+      currency: '€',
+      portalMode: 'open',
+      configuration: {},
+    }}>
+      {children}
+    </PropellerProvider>
+  );
+}
+```
+
+Why you build the client yourself is explained in
+[The SDK seam](/sdk-seam) — it is the central design decision of the
+package.
+
+## Render a component
+
+Inside the provider, drop in a component:
+
+```tsx
+import { ProductCard } from 'propeller-v2-react-ui';
+
+<ProductCard product={product} />
+```
+
+See the [Component reference](/components) for the full catalogue.

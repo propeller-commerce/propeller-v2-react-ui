@@ -1,0 +1,8 @@
+{
+  // Not used in compilation — editor experience + `npm run typecheck` only.
+  "extends": "@docusaurus/tsconfig",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "exclude": [".docusaurus", "build"]
+}

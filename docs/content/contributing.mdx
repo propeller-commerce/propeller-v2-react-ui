@@ -1,0 +1,62 @@
+---
+title: Contributing
+---
+
+# Contributing
+
+This page is a summary for developers working on the package itself. The
+authoritative version is the package's `CONTRIBUTING.md`.
+
+## Setup
+
+```bash
+npm install
+npm run build       # tsup bundles + Tailwind CSS compile
+npm run typecheck   # must be clean before any commit
+```
+
+## Scripts
+
+| Script                  | Purpose                                  |
+| ----------------------- | ---------------------------------------- |
+| `npm run build`         | Full build — bundles then the stylesheet |
+| `npm run typecheck`     | `tsc --noEmit`                           |
+| `npm test`              | Vitest unit suite                        |
+| `npm run test:coverage` | Unit suite with a coverage report        |
+| `npm run storybook`     | Storybook dev server                     |
+| `npm run build-storybook` | Static Storybook build                 |
+
+## How the package is verified
+
+Three layers:
+
+- **Unit tests** (Vitest) cover the pure-logic surface — `createServices`,
+  `toPlain`, and the framework-free utilities.
+- **Storybook** is the visual workbench — a story per component.
+- **The consumer's Playwright e2e suite** is the component regression
+  gate. The package has no app of its own, so its components are verified
+  by building the package and running a real storefront's e2e suite
+  against it (wired as the `downstream-e2e` CI job).
+
+There is intentionally no parallel React-Testing-Library component suite
+against a mock SDK — it would duplicate the e2e coverage less truthfully.
+
+## Coding rules
+
+The full list is in `CONTRIBUTING.md`. The load-bearing ones:
+
+- The SDK is reached through `Services` (`useServices()` or an explicit
+  client), never `new XxxService()`. No `graphqlClient` singleton, no
+  hardcoded endpoint.
+- No hand-written `useCallback` / `useMemo` on props — the React Compiler
+  handles memoisation; manual memo is a build-breaking lint error.
+- Every styled element carries its BEM hook class.
+- Responsive utilities used only inside template-literal ternaries must
+  be listed in `@source inline(...)` in `src/styles.css`.
+
+## The fix-location rule
+
+Component bugs are fixed in `src/components/`, not by copying a component
+into a consuming app. The supported customisation paths are theme tokens,
+BEM-hook CSS, the `className` prop, and wrap-and-extend (see
+[Styling](/styling)). If none fit, the fix is a PR here.

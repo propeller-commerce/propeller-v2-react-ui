@@ -1,0 +1,50 @@
+---
+title: Storybook
+---
+
+# Storybook
+
+Storybook is the package's component workbench. Every one of the 60
+components has a story that renders it in isolation against fixture data
+and a mock `PropellerProvider` — no running storefront, no live backend.
+
+Use it to:
+
+- **See a component** in its different states (in stock / out of stock,
+  default / discounted, logged-in / anonymous).
+- **Read the prop table** — the "Docs" tab of each story auto-generates
+  the component's full `*Props` interface, with the JSDoc for every prop,
+  straight from the TypeScript source.
+- **Develop a component** without wiring it into a real app.
+
+## Running it
+
+From the package repo:
+
+```bash
+npm run storybook        # dev server on :6006
+npm run build-storybook  # static build into storybook-static/
+```
+
+`build:css` runs first automatically so the stories pick up the latest
+compiled stylesheet.
+
+## How stories are built
+
+Stories live next to each component as `*.stories.tsx`. The mock
+foundation is in `src/__mocks__/`:
+
+- **`fixtures.ts`** — typed builder functions for the SDK domain objects
+  (`makeProduct`, `makeCart`, `makeOrder`, …). They construct the
+  realistic core a component renders.
+- **`mockServices.ts`** — a Proxy-based `Services` bundle: any
+  `services.x.y(...)` call resolves to fixture data, so interactive
+  components render without a real SDK.
+- **`decorators.tsx`** — `withPropeller` wraps a story in a real
+  `PropellerProvider` backed by the mock infra; `withMaxWidth` constrains
+  the canvas.
+
+Storybook is for **visual** development. It is not a behaviour-test
+layer — the consuming application's Playwright e2e suite covers real SDK
+behaviour, and the package's Vitest suite covers the pure-logic
+utilities. See [Contributing](/contributing).

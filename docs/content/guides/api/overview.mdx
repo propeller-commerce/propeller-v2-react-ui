@@ -1,0 +1,147 @@
+---
+title: API integration overview
+---
+
+# API integration overview
+
+This section explains **how the package communicates with the Propeller
+GraphQL backend** — the layers a request passes through, who owns what, and
+where to look when something goes wrong. The per-domain pages
+([cart](/guides/api/cart), [auth](/guides/api/auth),
+[catalog](/guides/api/catalog), [orders](/guides/api/orders),
+[B2B](/guides/api/b2b)) then go method-by-method.
+
+For the exact signature of any symbol named here, see the generated
+[API reference](/api).
+
+## The request path
+
+Every backend call made by the package travels the same path:
+
+```
+component / your code
+   │  calls
+   ▼
+composable (use* hook)            ← state, loading, error handling
+   │  calls
+   ▼
+Services bundle (services.x)      ← built once by createServices()
+   │  delegates to
+   ▼
+propeller-sdk-v2 Service class    ← builds the GraphQL document
+   │  uses
+   ▼
+GraphQLClient                     ← YOUR endpoint, headers, auth
+   │  HTTP
+   ▼
+Propeller GraphQL API
+```
+
+The package owns the **middle three layers**. It does **not** own the
+`GraphQLClient` — you construct that — and it does not own the network
+transport. See [The SDK seam](/sdk-seam) for why.
+
+## `GraphQLClient` — you build it
+
+The package ships no client and no endpoint. You construct a
+`GraphQLClient` from `propeller-sdk-v2` with the endpoint, headers, timeout
+and auth resolver that fit your app, and you keep ownership of it.
+
+```tsx
+import { GraphQLClient } from 'propeller-sdk-v2';
+
+const graphqlClient = new GraphQLClient({
+  endpoint: '/api/graphql',   // your route / proxy / upstream URL
+  apiKey: '',
+  timeout: 30_000,
+});
+```
+
+The client is **stateful**: SDK code mutates its config in place
+(`graphqlClient.updateConfig({ headers })`) when auth changes — see
+[Authentication](/guides/api/auth). Everything downstream reads the current
+headers at request time, so a login that updates the client is immediately
+visible to every composable.
+
+## `createServices` — the Services bundle
+
+`createServices(client)` builds one `Services` object — a typed bundle of
+**15 SDK service instances** (`product`, `cart`, `user`, `category`,
+`order`, `payMethod`, `login`, `address`, `company`, `crossupsell`,
+`bundle`, `favoriteList`, `purchaseAuthConfig`, `cluster`, `orderlist`),
+each wired to the client you passed.
+
+```tsx
+import { createServices } from 'propeller-v2-react-ui';
+
+const services = createServices(graphqlClient);
+// services.cart, services.product, services.order, …
+```
+
+It is **memoised per client** with a `WeakMap` — calling it again with the
+same client returns the same bundle, so there is no cost to calling it
+freely. You pass `services` (and `graphqlClient`) into `<PropellerProvider>`
+once; from there `useServices()` returns the bundle anywhere in the tree.
+
+See [`createServices`](/api/functions/createServices) and
+[`Services`](/api/interfaces/Services) in the reference.
+
+## How composables reach the API
+
+There are two patterns, and the package uses both:
+
+1. **Via the provider** — a composable calls `useServices()` to read the
+   bundle from `<PropellerProvider>`. Used by `useServices` itself and the
+   pure context hooks.
+2. **Via an explicit `graphqlClient` option** — most data hooks
+   (`useCart`, `useAuth`, `useOrders`, …) accept `graphqlClient` in their
+   options object and derive a local `Services` bundle from it with
+   `createServices`. Because `createServices` is memoised, this resolves to
+   the same bundle the provider holds.
+
+In practice you pass the **same** `graphqlClient` instance everywhere — into
+the provider and into each hook's options — so both patterns observe one
+client, one bundle, one auth state.
+
+## `toPlain` — normalising SDK results
+
+SDK service methods return **class instances** whose getters forward to
+underscore-prefixed backing fields (`_items`, `_firstName`). Anything that
+serialises them — JSON, React state-diffing, `structuredClone` — sees the
+underscored shape, not the clean public type.
+
+[`toPlain(value)`](/api/functions/toPlain) recursively strips that prefix.
+Apply it once at the service boundary when you need a plain object (for
+React state, for passing across an RSC boundary, for logging). The
+package's own components handle this internally; you only need `toPlain`
+for data you fetch yourself.
+
+## Error handling convention
+
+API-talking composables **do not throw** to the caller. Each async action
+returns a result object — typically `{ success: boolean; error?: string }`,
+sometimes with a payload (`cart`, `orderId`, `user`). Loading and the last
+error are also surfaced as `loading` / `error` fields on the hook return.
+
+```tsx
+const { addItem, loading, error } = useCart({ graphqlClient, user });
+
+const result = await addItem({ product, quantity: 1 });
+if (!result.success) {
+  // result.error is a human-readable message
+}
+```
+
+The exception is `useServices()`, which **throws** if called outside
+`<PropellerProvider>` — that is an integration mistake, not a runtime
+error, so it fails loudly and early.
+
+## Authentication, in one paragraph
+
+Login does not persist a JWT to `localStorage`. `useAuth().login()` sets the
+`Authorization: Bearer …` header **in memory** on the `GraphQLClient` (via
+`updateConfig`) for the rest of the page session, and hands the token back
+to you through `onAuthHeaderUpdate` / the result object. Cross-reload auth
+is your app's responsibility — typically an httpOnly cookie set by your
+backend, with your GraphQL proxy injecting the Bearer header server-side.
+Full detail on [the auth page](/guides/api/auth).

@@ -1,0 +1,143 @@
+---
+title: Component reference
+---
+
+# Component reference
+
+The package exports 60 components. This page is the catalogue — each entry
+links to that component's **generated API page** (full `*Props` table with
+per-prop documentation, pulled from the TypeScript source).
+
+Three ways to explore a component:
+
+- **This catalogue → [API reference](/api)** — the complete prop contract
+  for every component and its types.
+- **[Storybook](/storybook)** — a live, interactive preview of each
+  component against fixture data.
+- **[API integration guides](/guides/api/overview)** — narrative docs on how
+  the data-driven components and their composables talk to the backend.
+
+Components that need infrastructure (the SDK services, the current user)
+resolve it from `<PropellerProvider>` — see [Getting started](/getting-started).
+
+Each component name links to its generated API page.
+
+## Product
+
+| Component | What it renders |
+| --- | --- |
+| [`ProductCard`](/api/variables/ProductCard) | Full product card — image, badges, name, SKU, price, favourite, embedded AddToCart |
+| [`ProductGrid`](/api/variables/ProductGrid) | Responsive product/cluster grid with internal fetching, skeleton, empty state, pagination |
+| [`ProductInfo`](/api/functions/ProductInfo) | Product headline block — name, SKU, price, stock, short description |
+| [`ProductPrice`](/api/functions/ProductPrice) | Price display — gross/net, discounts, tax-inclusive toggle |
+| [`ProductBulkPrices`](/api/functions/ProductBulkPrices) | Quantity-tiered price table |
+| [`ProductGallery`](/api/functions/ProductGallery) | Image gallery — main image, thumbnails, zoom, lightbox |
+| [`ProductTabs`](/api/functions/ProductTabs) | Tab bar wrapping description / specs / downloads / videos |
+| [`ProductDescription`](/api/functions/ProductDescription) | Long description, with collapse/expand |
+| [`ProductShortDescription`](/api/functions/ProductShortDescription) | One-line summary |
+| [`ProductSpecifications`](/api/functions/ProductSpecifications) | Attribute/spec table |
+| [`ProductDownloads`](/api/functions/ProductDownloads) | Downloadable documents |
+| [`ProductVideos`](/api/functions/ProductVideos) | Embedded videos |
+| [`ProductSlider`](/api/functions/ProductSlider) | Horizontal product carousel (cross-sells, related) |
+| [`ProductBundles`](/api/functions/ProductBundles) | Bundle offers for a product |
+| [`AddToCart`](/api/variables/AddToCart) | Quantity stepper + add button |
+| [`AddToFavorite`](/api/functions/AddToFavorite) | Favourite toggle with a list-picker modal |
+| [`ItemStock`](/api/variables/ItemStock) | Stock-availability badge |
+
+## Cluster
+
+| Component | What it renders |
+| --- | --- |
+| [`ClusterCard`](/api/variables/ClusterCard) | Product-cluster card |
+| [`ClusterInfo`](/api/functions/ClusterInfo) | Cluster headline info |
+| [`ClusterOptions`](/api/functions/ClusterOptions) | Selectable option groups |
+| [`ClusterConfigurator`](/api/functions/ClusterConfigurator) | Configuration picker narrowing candidate products |
+
+## Grid
+
+| Component | What it renders |
+| --- | --- |
+| [`GridTitle`](/api/functions/GridTitle) | Category / search heading |
+| [`GridToolbar`](/api/functions/GridToolbar) | Sort, per-page, view-toggle, active-filter badges |
+| [`GridFilters`](/api/functions/GridFilters) | Accordion filter sidebar — price slider + attribute facets |
+| [`GridPagination`](/api/functions/GridPagination) | Pagination bar (compact or full) |
+
+## Cart & checkout
+
+| Component | What it renders |
+| --- | --- |
+| [`CartOverview`](/api/functions/CartOverview) | Full editable cart |
+| [`CartItem`](/api/functions/CartItem) | One cart line — image, qty stepper, total, remove |
+| [`CartSummary`](/api/functions/CartSummary) | Cart totals panel + checkout/quote actions |
+| [`CartIconAndSidebar`](/api/functions/CartIconAndSidebar) | Header cart icon + slide-out sidebar |
+| [`ItemsOverview`](/api/functions/ItemsOverview) | Read-only cart line list (review / confirmation) |
+| [`ActionCode`](/api/functions/ActionCode) | Promo/action-code apply + remove |
+| [`CartPaymethods`](/api/functions/CartPaymethods) | Payment-method tiles |
+| [`CartCarriers`](/api/functions/CartCarriers) | Shipping-carrier tiles |
+| [`DeliveryDate`](/api/functions/DeliveryDate) | Expected delivery date, optional date picker |
+
+## Address
+
+| Component | What it renders |
+| --- | --- |
+| [`AddressCard`](/api/functions/AddressCard) | A single address, with per-field show/hide |
+| [`AddressSelector`](/api/functions/AddressSelector) | Modal address picker for logged-in users |
+
+## Order & quote
+
+| Component | What it renders |
+| --- | --- |
+| [`OrderList`](/api/functions/OrderList) | Paginated order table with search/filter |
+| [`OrderSummary`](/api/functions/OrderSummary) | Order headline facts |
+| [`OrderItemCard`](/api/functions/OrderItemCard) | One order line |
+| [`OrderTotals`](/api/functions/OrderTotals) | Order totals block |
+| [`OrderShipments`](/api/functions/OrderShipments) | Shipment / tracking info |
+| [`OrderActions`](/api/functions/OrderActions) | Per-order actions (PDF, re-order) |
+| [`QuoteActions`](/api/functions/QuoteActions) | Accept-quotation button + T&C checkbox |
+
+## Account & auth
+
+| Component | What it renders |
+| --- | --- |
+| [`AccountIconAndMenu`](/api/functions/AccountIconAndMenu) | Header account control / account-page sidebar |
+| [`CompanySwitcher`](/api/functions/CompanySwitcher) | Active-company switcher for multi-company contacts |
+| [`UserDetails`](/api/functions/UserDetails) | User profile block |
+| [`LoginForm`](/api/functions/LoginForm) | Email/password sign-in |
+| [`RegisterForm`](/api/functions/RegisterForm) | Account registration |
+| [`ForgotPassword`](/api/functions/ForgotPassword) | Password-reset request |
+
+## Favourites
+
+| Component | What it renders |
+| --- | --- |
+| [`FavoriteLists`](/api/functions/FavoriteLists) | The user's favourite lists |
+| [`FavoriteListItem`](/api/functions/FavoriteListItem) | One row of a favourites list |
+| [`FavoriteListDetails`](/api/functions/FavoriteListDetails) | The contents of one favourite list |
+
+## Navigation
+
+| Component | What it renders |
+| --- | --- |
+| [`Menu`](/api/functions/Menu) | Category navigation tree |
+| [`SearchBar`](/api/functions/SearchBar) | Product search with type-ahead results |
+| [`Breadcrumbs`](/api/functions/Breadcrumbs) | Category trail |
+
+## Purchase authorization (B2B)
+
+| Component | What it renders |
+| --- | --- |
+| [`PurchaseAuthorizationConfigurator`](/api/functions/PurchaseAuthorizationConfigurator) | Manage a company's PA rules |
+| [`PurchaseAuthorizationRequests`](/api/functions/PurchaseAuthorizationRequests) | Carts awaiting authorization |
+
+## Category
+
+| Component | What it renders |
+| --- | --- |
+| [`CategoryDescription`](/api/functions/CategoryDescription) | Category long description, with collapse |
+| [`CategoryShortDescription`](/api/functions/CategoryShortDescription) | Category short description |
+
+## Display helper
+
+| Component | What it renders |
+| --- | --- |
+| [`PriceToggle`](/api/functions/PriceToggle) | Controlled incl./excl. VAT switch |

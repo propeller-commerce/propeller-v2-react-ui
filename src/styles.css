@@ -1,0 +1,297 @@
+/*
+ * propeller-v2-react-ui — compiled component styles.
+ *
+ * Built with Tailwind v4. Generates every utility class the package's
+ * components reference (scanned from src/components/**\/*.{ts,tsx}) plus the
+ * theme tokens those utilities resolve against (`--color-card`, etc.).
+ *
+ * Consumers do:
+ *   import 'propeller-v2-react-ui/styles.css';
+ * once at the top of their root layout. After that the components render
+ * with their intended styles regardless of whether the consumer also uses
+ * Tailwind themselves.
+ *
+ * Theme tokens are declared at low specificity (`:root`) so a host
+ * application that defines the same tokens (e.g. in its global stylesheet)
+ * overrides them and the components pick up the host's brand palette
+ * without forking the package.
+ */
+
+@import "tailwindcss";
+
+/* Scan the package's source files so every literal class name is preserved
+ * in the compiled CSS. Paths are relative to this file (src/styles.css),
+ * so `./components/...` traverses sibling directories. */
+@source "./components/**/*.{ts,tsx}";
+@source "./composables/react/**/*.{ts,tsx}";
+@source "./context/**/*.{ts,tsx}";
+
+/* Force-include responsive utilities used inside template-literal ternaries.
+ * The v4 source scanner extracts class names from `'static strings'`, but a
+ * sequence like `${cond ? 'md:flex-nowrap items-center' : 'flex-col'}`
+ * inside a backtick template can be missed depending on how the file
+ * parses (it's a tokenizer corner case, not a bug per se). Listing the
+ * affected classes here is the documented escape hatch. */
+@source inline("md:flex-nowrap md:w-auto md:py-0 md:border-t-0 md:pt-0 md:gap-4 md:text-base md:h-24 md:w-24 md:w-80 md:hidden md:block md:grid-cols-2 md:grid-cols-3 md:grid-cols-4 md:mt-1");
+@source inline("md:flex-row md:items-center md:gap-3 md:contents md:flex-shrink-0 md:ml-auto md:flex-none md:w-12 md:w-16 md:basis-auto basis-full flex-wrap gap-x-2 gap-y-1 min-w-0 text-right w-[1.1em] h-[1.1em]");
+@source inline("sm:aspect-square sm:block sm:flex sm:flex-1 sm:flex-row sm:gap-2 sm:gap-6 sm:grid-cols-2 sm:grid-cols-3 sm:hidden sm:inline sm:items-center sm:justify-between sm:p-4 sm:pb-4 sm:px-4 sm:px-6 sm:text-4xl sm:text-lg sm:text-sm");
+@source inline("lg:flex-row lg:grid-cols-2 lg:grid-cols-3 lg:grid-cols-4 lg:grid-cols-5 lg:grid-cols-6 lg:pl-6 lg:w-72");
+@source inline("lg:hidden lg:block fixed inset-0 inset-y-0 left-0 z-40 z-50 w-80 max-w-[85vw] min-w-[1.25rem] bg-foreground/40 shadow-xl overflow-y-auto h-14 h-5 -translate-x-full translate-x-0 transition-transform transition-opacity duration-300 opacity-0 opacity-100 pointer-events-none");
+@source inline("lg:static lg:z-auto lg:w-auto lg:w-64 lg:max-w-none lg:translate-x-0 lg:bg-transparent lg:shadow-none lg:flex-none lg:flex-shrink-0 lg:overflow-visible lg:p-0");
+
+:root {
+  /* Base */
+  --background: #ffffff;
+  --foreground: #111111;
+  --foreground-subtle: #9ca3af;
+
+  /* Surface / Card */
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --surface-hover: #f9fafb;
+
+  /* Brand / Primary */
+  --primary: #7f22fe;
+  --primary-foreground: #ffffff;
+
+  /* Secondary / Muted */
+  --secondary: #7f22fe;
+  --secondary-foreground: #ffffff;
+  --muted: #f5f5f5;
+  --muted-foreground: #6b7280;
+
+  /* Interactive / Accent */
+  --accent: #f5f5f5;
+  --accent-foreground: #111111;
+
+  /* Status */
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  /* Borders / Inputs */
+  --border: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --input: #d1d5db;
+  --ring: #9084ff;
+
+  /* Measurements */
+  --radius: 4px;
+  --radius-control: 6px;
+  --radius-container: 8px;
+}
+
+/*
+ * Cross-Tailwind cascade hardening.
+ *
+ * The row layout of ProductCard / ClusterCard / CartItem uses responsive
+ * override pairs in the markup — `w-full md:w-auto`, `border-t md:border-t-0`,
+ * `py-2 md:py-0`, `flex-wrap md:flex-nowrap`. Those rely on the `md:` utility
+ * cascading AFTER its base utility.
+ *
+ * When a consumer app also runs Tailwind v4, the consumer's generated
+ * stylesheet is a SECOND sheet in the cascade. It re-emits the base utilities
+ * the consumer's own templates use (`.w-full`, `.border-t`, …) but NOT the
+ * `md:` variants that only appear inside this package's components. Whichever
+ * sheet loads last wins on equal specificity — so the consumer's plain
+ * `.w-full` clobbers this package's `@media .md\:w-auto`, the card footer
+ * goes full-width, and the body/title collapses to zero width.
+ *
+ * Fix: restate the desktop (≥768px) row intent on the components' BEM hook
+ * classes, scoped under the card root so the selector is specificity (0,2,0)
+ * — it beats any single-class utility (0,1,0) regardless of sheet order.
+ * The markup is unchanged; these rules just make the package authoritative
+ * for its own row layout.
+ */
+@media (min-width: 48rem) {
+  .propeller-product-card[data-layout='row'] .propeller-product-card__footer,
+  .propeller-cluster-card[data-layout='row'] .propeller-cluster-card__footer,
+  .propeller-cart-item .propeller-cart-item__footer {
+    width: auto;
+    border-top-width: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .propeller-product-card[data-layout='row'],
+  .propeller-cluster-card[data-layout='row'],
+  .propeller-cart-item {
+    flex-wrap: nowrap;
+  }
+
+  .propeller-product-card[data-layout='row'] .propeller-product-card__footer,
+  .propeller-cluster-card[data-layout='row'] .propeller-cluster-card__footer {
+    flex-direction: row;
+    align-items: center;
+    column-gap: 0.75rem;
+  }
+
+  .propeller-product-card[data-layout='row'] .propeller-product-card__footer-meta,
+  .propeller-cluster-card[data-layout='row'] .propeller-cluster-card__footer-meta {
+    display: contents;
+  }
+
+  .propeller-product-card[data-layout='row'] .propeller-product-card__cta,
+  .propeller-cluster-card[data-layout='row'] .propeller-cluster-card__cta {
+    width: auto;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  .propeller-add-to-cart__controls {
+    flex-wrap: nowrap;
+  }
+
+  .propeller-add-to-cart__controls .propeller-add-to-cart__stepper {
+    width: auto;
+  }
+
+  .propeller-add-to-cart__controls .propeller-add-to-cart__stepper .propeller-add-to-cart__quantity {
+    flex: none;
+    width: 3rem;
+  }
+
+  .propeller-add-to-cart__controls .propeller-add-to-cart__submit {
+    flex-basis: auto;
+  }
+}
+
+/* Card hover ownership: while the pointer is on a CTA, the button owns the
+ * hover state and the card-level highlight stands down. */
+@media (hover: hover) {
+  .propeller-product-card:has(.propeller-add-to-cart__submit:hover),
+  .propeller-product-card:has(.propeller-cluster-card__cta-link:hover),
+  .propeller-cluster-card:has(.propeller-add-to-cart__submit:hover),
+  .propeller-cluster-card:has(.propeller-cluster-card__cta-link:hover) {
+    border-color: var(--border) !important;
+    box-shadow: var(--tw-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05)) !important;
+  }
+
+  /* Hold the image flat. Don't add `transform: none` — the minifier then
+   * drops this `scale` reset. */
+  .propeller-product-card:has(.propeller-add-to-cart__submit:hover)
+    .propeller-product-card__image,
+  .propeller-product-card:has(.propeller-cluster-card__cta-link:hover)
+    .propeller-product-card__image,
+  .propeller-cluster-card:has(.propeller-add-to-cart__submit:hover)
+    .propeller-cluster-card__image,
+  .propeller-cluster-card:has(.propeller-cluster-card__cta-link:hover)
+    .propeller-cluster-card__image {
+    scale: 1 !important;
+  }
+}
+
+/*
+ * GridFiltersPanel — same cross-Tailwind cascade hardening as the cards, but
+ * scoped to the `lg` (64rem) breakpoint the panel switches at. Below lg the
+ * panel is an off-canvas drawer (fixed, translate-x); at lg+ it must collapse
+ * back into a plain static sidebar and its drawer chrome (trigger button,
+ * header, footer, backdrop) must disappear. Those are `lg:` utilities on the
+ * markup, which a consumer's Tailwind sheet can clobber — so the desktop
+ * intent is restated here on the BEM hook classes (specificity 0,1,0+ scoped),
+ * making the package authoritative regardless of sheet order.
+ */
+
+/* Mobile (below lg): the trigger button spans the full width of the panel. */
+.propeller-grid-filters-panel__trigger {
+  width: 100%;
+}
+
+@media (min-width: 64rem) {
+  /* Root: constrain the panel to a fixed sidebar column. The root carries
+     `w-full lg:w-64 lg:flex-shrink-0` in the markup, but the consumer's
+     Tailwind sheet re-emits `.w-full` (width:100%) and — loading after this
+     package's CSS — wins the cascade on equal specificity, leaving the panel
+     full-width and shoving the product grid off-screen. Restate the desktop
+     width here so the package stays authoritative regardless of sheet order. */
+  .propeller-grid-filters-panel {
+    width: 16rem;
+    flex-shrink: 0;
+  }
+
+  .propeller-grid-filters-panel__trigger,
+  .propeller-grid-filters-panel__backdrop,
+  .propeller-grid-filters-panel__header,
+  .propeller-grid-filters-panel__footer {
+    display: none;
+  }
+
+  .propeller-grid-filters-panel__panel {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    width: auto;
+    max-width: none;
+    transform: none;
+    background-color: transparent;
+    box-shadow: none;
+  }
+
+  .propeller-grid-filters-panel__body {
+    flex: none;
+    overflow: visible;
+    padding: 0;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-foreground-subtle: var(--foreground-subtle);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-surface-hover: var(--surface-hover);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: calc(var(--radius) - 0px);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-control: var(--radius-control);
+  --radius-container: var(--radius-container);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0 }
+    to { height: var(--radix-accordion-content-height) }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height) }
+    to { height: 0 }
+  }
+}

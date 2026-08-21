@@ -1,0 +1,122 @@
+---
+title: Catalog & products
+---
+
+# Catalog & products
+
+Six composables cover catalog browsing and product detail:
+`useProductSearch`, `useProductInfo`, `useProductSpecs`, `useProductSlider`,
+`useProductBundles` and `useMenu`. This page explains how each reaches the
+GraphQL backend.
+
+Signatures are in the [API reference](/api) — e.g.
+[`useProductSearch`](/api/functions/useProductSearch),
+[`useProductInfo`](/api/functions/useProductInfo).
+
+## `useProductSearch`
+
+Powers category listing pages and search results — filtering, sorting,
+pagination.
+
+```tsx
+const search = useProductSearch({ graphqlClient, categoryId, language: 'NL' });
+```
+
+| Concern | SDK calls |
+| --- | --- |
+| Category context | `services.category.getCategory` |
+| Product results | `services.product.search` |
+
+`graphqlClient` is **optional** here — a fully controlled consumer can drive
+the component from its own data and omit it.
+
+### Race-condition handling
+
+Search parameters change fast (a user typing, toggling facets). Each fetch
+takes a monotonically increasing id from a ref; when a response returns, the
+hook checks its id against the latest and **discards stale responses**. This
+prevents an earlier, slower request from overwriting newer results. You get
+this for free — no debouncing required on your side, though the search input
+component debounces keystrokes before they reach the hook.
+
+### Pagination
+
+Pagination state is managed by the shared `usePagination` hook (current
+page, total pages, per-page). `useProductSearch` feeds `product.search`
+offsets/limits from it and updates totals from each response.
+
+## `useProductInfo`
+
+Product (or cluster) detail-page data.
+
+```tsx
+const info = useProductInfo({ graphqlClient, productId, language: 'NL' });
+```
+
+It performs **sequential** fetches via `services.product` and
+`services.cluster`:
+
+1. `product.getOrderlists` — order-list context for the product.
+2. `product.getProduct` — the product, with attributes.
+3. For a configurable product: `cluster.getClusterConfig` then
+   `cluster.getCluster`.
+
+If the primary fetch yields nothing it falls back to a supplied
+`defaultProduct`, so the detail page can still render.
+
+## `useProductSpecs`
+
+Extracts and groups a product's attributes into a spec table.
+
+```tsx
+const specs = useProductSpecs({ graphqlClient, product });
+```
+
+Calls `services.product.getProduct` for the full attribute set, then groups
+values with the shared `attributeExtractor` utilities
+([`extractAttributeValues`](/api/functions/extractAttributeValues),
+[`collectAttributeValues`](/api/functions/collectAttributeValues)).
+
+## `useProductSlider`
+
+Cross-sell / up-sell / related-product carousels.
+
+```tsx
+const slider = useProductSlider({ graphqlClient, productId });
+```
+
+Calls `services.crossupsell.getOtherProducts` with a
+`FetchCrossupsellsInput` describing the relationship type. Used by the
+`ProductSlider` component.
+
+## `useProductBundles`
+
+Bundle offers attached to a product.
+
+```tsx
+const bundles = useProductBundles({ graphqlClient, product });
+```
+
+Calls `services.bundle` for bundle composition and pricing, and reuses
+[`initCart`](/api/functions/initCart) when a bundle is added to the cart
+(see [Cart & checkout](/guides/api/cart)).
+
+## `useMenu`
+
+The category navigation tree.
+
+```tsx
+const menu = useMenu({ graphqlClient, rootCategoryId, depth: 3 });
+```
+
+`useMenu` is the one composable that issues a **raw GraphQL query** via
+`graphqlClient.request(...)` rather than going through a Service class —
+the recursive depth-configurable category query has no dedicated SDK
+method.
+
+### Caching
+
+The category tree changes rarely, so `useMenu` **caches the result in
+`localStorage` with a 12-hour TTL**. A page load within the TTL renders the
+menu from cache with no network call; after it expires the next load
+re-fetches and re-caches. Clearing the cache key forces a refresh.

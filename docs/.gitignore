@@ -1,0 +1,11 @@
+# Docusaurus
+/.docusaurus/
+/build/
+/node_modules/
+
+# Generated API reference (rebuilt by `npm run gen:api` before every build)
+/content/api/
+
+# Misc
+.DS_Store
+*.log
