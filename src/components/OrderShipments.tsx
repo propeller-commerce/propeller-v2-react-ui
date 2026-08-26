@@ -210,7 +210,9 @@ function OrderShipments(props: OrderShipmentsProps) {
                                   <>
                                     {!!getOrderItemForShipmentItem(shipmentItem) ? (
                                       <>
-                                        {getOrderItemForShipmentItem(shipmentItem)?.product?.sku || '-'}
+                                        {getOrderItemForShipmentItem(shipmentItem)?.product?.sku ||
+                                          getOrderItemForShipmentItem(shipmentItem)?.sku ||
+                                          '-'}
                                       </>
                                     ) : null}
                                     {!getOrderItemForShipmentItem(shipmentItem) ? <>-</> : null}

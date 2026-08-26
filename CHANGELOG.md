@@ -8,6 +8,24 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.19.1] - 2026-08-26
+
+### Fixed
+
+- **Order and quote lines whose product is gone from the catalog.** A product
+  that is hidden, withdrawn or deleted still appears on every order and quote it
+  was sold on, but the API returns no product record for it — `orderItem.product`
+  is simply absent. `OrderItemCard` already fell back to the order item's own
+  snapshot of the line for the name, sku, thumbnail and link, but not for the
+  price: an injected `priceComponent` was handed `product.price`, rendered blank
+  on `undefined`, and the line total silently disappeared from the row. Such a
+  line now falls through to the order item's `priceTotal`. Rows with a product
+  are unaffected — the slot is still used whenever there is a catalog price to
+  give it.
+- **`OrderShipments` printed `-` for the SKU** of a shipment line whose product
+  is missing, having read `product.sku` with no fallback. It now reads the order
+  item's own `sku`, which is stored on the order and always there.
+
 ## [0.19.0] - 2026-08-26
 
 ### Added
