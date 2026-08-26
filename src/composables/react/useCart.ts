@@ -8,6 +8,21 @@ import { CrossupsellType, PurchaseRole } from '@propeller-commerce/propeller-sdk
 import type { GraphQLClient, Cart, CartMainItem, Product, Cluster, Contact, Customer, MediaImageProductSearchInput, TransformationsInput, PurchaseAuthorizationConfig, Crossupsell, CrossupsellsQueryVariables, CrossupsellSearchInput, CartProcessResponse } from '@propeller-commerce/propeller-sdk-v2';
 import { initCart, type CartInitConfig } from '../shared/utils/cartInit';
 
+// The cart mutations take the media arguments that decide whether the returned
+// cart items carry any `imageVariants` at all. They are optional and nothing
+// warns when they are missing: the mutation succeeds and every consumer that
+// reads `media.images.items[0].imageVariants[0].url` — CartItem,
+// CartIconAndSidebar, the add-to-cart modal — renders an empty tile for a
+// product that has a perfectly good PIM image. The failure shows up two screens
+// away from the call site, so default them here rather than requiring every
+// host to rediscover it. An explicit `configuration` still wins.
+const DEFAULT_IMAGE_SEARCH_FILTERS = { page: 1, offset: 1 } as MediaImageProductSearchInput;
+const DEFAULT_IMAGE_VARIANT_FILTERS = {
+  transformations: [
+    { name: 'thumb', transformation: { format: 'WEBP', height: 100, width: 100, fit: 'BOUNDS' } },
+  ],
+} as unknown as TransformationsInput;
+
 /** Options for {@link useCart}. */
 export interface UseCartOptions {
   /** GraphQL client the hook derives its Services bundle from. */
@@ -41,7 +56,7 @@ export interface AddItemOptions {
   /** Explicit unit price override. */
   price?: number;
   /** Override: when provided, replaces the SDK call and returns the cart synchronously. */
-  onAddToCart?: (product: Product, clusterId?: number, quantity?: number, childItems?: { productId: number; quantity: number }[], notes?: string, price?: number) => Cart;
+  onAddToCart?: (product: Product, clusterId?: number, quantity?: number, childItems?: { productId: number; quantity: number }[], notes?: string, price?: number) => Cart | Promise<Cart>;
   /** Fires after the item is added — receives the updated cart and the matched line item. */
   afterAddToCart?: (cart: Cart, item: CartMainItem | null) => void;
   /** When `true`, rejects the add if `product.inventory.totalQuantity` is below `quantity`. */
@@ -84,6 +99,14 @@ export interface UseCartReturn {
   addItem: (
     options: AddItemOptions,
   ) => Promise<Result<{ cart: Cart; item: CartMainItem | null }, string>>;
+  /**
+   * Adds several products in one call, sequentially, threading the resolved
+   * cart id from each add into the next. Use this instead of looping over
+   * `addItem` yourself. Stops at the first failure and returns that error.
+   */
+  addItems: (
+    items: AddItemOptions[],
+  ) => Promise<Result<{ cart: Cart; items: (CartMainItem | null)[] }, string>>;
   /** Updates a line item's quantity. */
   updateItemQuantity: (cartItemId: string, quantity: number) => Promise<Cart | undefined>;
   /** Debounced update of a line item's notes (`debounceMs` defaults to 500). */
@@ -140,6 +163,32 @@ export function useCart(options: UseCartOptions): UseCartReturn {
   // hook still reports the stale id.
   const [createdCartId, setCreatedCartId] = useState('');
   const cartId = options.cartId || createdCartId;
+  // State does not update until the next render, so a handler that adds several
+  // products in one tick read the same stale id on every iteration: the 2nd..nth
+  // add failed with "No cart ID provided", or — with `createCart` — quietly
+  // started a NEW cart per product so only the last one survived. The ref is
+  // written the moment a cart is resolved, within the same tick.
+  const cartIdRef = useRef(cartId);
+  if (cartId && cartIdRef.current !== cartId) cartIdRef.current = cartId;
+
+  // Every place that learns a cart id goes through here, so the ref can never
+  // drift from the state.
+  const rememberCart = useCallback((c: Cart) => {
+    setCart(c);
+    setCreatedCartId(c.cartId);
+    cartIdRef.current = c.cartId;
+  }, []);
+
+  const imageSearchFilters = useCallback(
+    (): MediaImageProductSearchInput =>
+      (configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput) ?? DEFAULT_IMAGE_SEARCH_FILTERS,
+    [configuration],
+  );
+  const imageVariantFilters = useCallback(
+    (): TransformationsInput =>
+      (configuration?.imageVariantFiltersSmall as TransformationsInput) ?? DEFAULT_IMAGE_VARIANT_FILTERS,
+    [configuration],
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const notesTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -166,12 +215,12 @@ export function useCart(options: UseCartOptions): UseCartReturn {
     const config: CartInitConfig = {
       services: createServices(graphqlClient),
       user, companyId, language,
-      imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput,
-      imageVariantFilters: configuration?.imageVariantFiltersSmall as TransformationsInput,
-      onCartCreated: (c) => { setCart(c); setCreatedCartId(c.cartId); onCartCreated?.(c); },
+      imageSearchFilters: imageSearchFilters(),
+      imageVariantFilters: imageVariantFilters(),
+      onCartCreated: (c) => { rememberCart(c); onCartCreated?.(c); },
     };
     const resolved = await initCart(config);
-    setCart(resolved); setCreatedCartId(resolved.cartId);
+    rememberCart(resolved);
     return resolved;
   }, [graphqlClient, user, companyId, language, configuration, onCartCreated]);
 
@@ -186,13 +235,13 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       }
       const childItemInputs = opts.childItems?.map((id) => ({ productId: id, quantity: opts.quantity }));
       if (opts.onAddToCart) {
-        const resultCart = opts.onAddToCart(opts.product, opts.cluster?.clusterId, opts.quantity, childItemInputs, opts.notes, opts.price);
-        setCart(resultCart); setCreatedCartId(resultCart.cartId);
+        const resultCart = await opts.onAddToCart(opts.product, opts.cluster?.clusterId, opts.quantity, childItemInputs, opts.notes, opts.price);
+        rememberCart(resultCart);
         const addedItem = resultCart.items?.find((i: CartMainItem) => i.productId === opts.product.productId) ?? null;
         opts.afterAddToCart?.(resultCart, addedItem);
         return ok({ cart: resultCart, item: addedItem });
       }
-      let resolvedCartId = opts.cartId || cartId;
+      let resolvedCartId = opts.cartId || cartIdRef.current || cartId;
       if (!resolvedCartId) {
         if (opts.createCart) { const c = await resolveCart(); resolvedCartId = c.cartId; }
         else return err('No cart ID provided');
@@ -201,9 +250,9 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       const resultCart = await service.addItemToCart({
         id: resolvedCartId,
         input: { productId: opts.product.productId, quantity: opts.quantity, ...(opts.cluster?.clusterId !== undefined && { clusterId: opts.cluster.clusterId }), ...(childItemInputs && { childItems: childItemInputs }), ...(opts.notes && { notes: opts.notes }), ...(opts.price !== undefined && { price: opts.price }) },
-        language, imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput, imageVariantFilters: configuration?.imageVariantFiltersSmall as TransformationsInput,
+        language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters(),
       });
-      setCart(resultCart); setCreatedCartId(resultCart.cartId);
+      rememberCart(resultCart);
       const addedItem = resultCart.items?.find((i: CartMainItem) => i.productId === opts.product.productId) ?? null;
       opts.afterAddToCart?.(resultCart, addedItem);
       return ok({ cart: resultCart, item: addedItem });
@@ -212,13 +261,32 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       setError(msg);
       return err(msg);
     } finally { setLoading(false); }
-  }, [graphqlClient, cartId, language, configuration, resolveCart]);
+  }, [graphqlClient, cartId, language, configuration, resolveCart, rememberCart, imageSearchFilters, imageVariantFilters]);
+
+  /**
+   * Sequential bulk add. Each add hands its resolved cart id to the next, so
+   * the first one may create the cart and the rest land in it.
+   */
+  const addItems = useCallback(async (
+    items: AddItemOptions[],
+  ): Promise<Result<{ cart: Cart; items: (CartMainItem | null)[] }, string>> => {
+    const added: (CartMainItem | null)[] = [];
+    let lastCart: Cart | null = null;
+    for (const item of items) {
+      const result = await addItem({ createCart: true, ...item });
+      if (!result.ok) return err(result.error);
+      lastCart = result.data.cart;
+      added.push(result.data.item);
+    }
+    if (!lastCart) return err('No items to add');
+    return ok({ cart: lastCart, items: added });
+  }, [addItem]);
 
   const updateItemQuantity = useCallback(async (cartItemId: string, quantity: number): Promise<Cart | undefined> => {
     if (!cartId) return undefined; setLoading(true);
     try {
       const service = createServices(graphqlClient).cart;
-      const updated = await service.updateCartItem({ id: cartId, itemId: cartItemId, input: { quantity }, language, imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput, imageVariantFilters: configuration?.imageVariantFiltersSmall });
+      const updated = await service.updateCartItem({ id: cartId, itemId: cartItemId, input: { quantity }, language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters() });
       setCart(updated);
       return updated;
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to update quantity'); }
@@ -232,7 +300,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       if (!cartId) return;
       try {
         const service = createServices(graphqlClient).cart;
-        const updated = await service.updateCartItem({ id: cartId, itemId: cartItemId, input: { notes }, language, imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput, imageVariantFilters: configuration?.imageVariantFiltersSmall });
+        const updated = await service.updateCartItem({ id: cartId, itemId: cartItemId, input: { notes }, language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters() });
         setCart(updated);
       } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to update notes'); }
     }, debounceMs);
@@ -246,8 +314,8 @@ export function useCart(options: UseCartOptions): UseCartReturn {
         id: cartId,
         input: { itemId: cartItemId },
         language,
-        imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput,
-        imageVariantFilters: configuration?.imageVariantFiltersSmall as TransformationsInput
+        imageSearchFilters: imageSearchFilters(),
+        imageVariantFilters: imageVariantFilters()
       });
       setCart(updated);
       return updated;
@@ -259,7 +327,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
     if (!cartId) return undefined;
     try {
       const service = createServices(graphqlClient).cart;
-      const updated = await service.addActionCodeToCart({ id: cartId, input: { actionCode: code }, language, imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput, imageVariantFilters: configuration?.imageVariantFiltersSmall });
+      const updated = await service.addActionCodeToCart({ id: cartId, input: { actionCode: code }, language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters() });
       setCart(updated);
       return updated;
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to add action code'); }
@@ -269,7 +337,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
     if (!cartId) return undefined;
     try {
       const service = createServices(graphqlClient).cart;
-      const updated = await service.removeActionCodeFromCart({ id: cartId, input: { actionCode: code }, language, imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput, imageVariantFilters: configuration?.imageVariantFiltersSmall });
+      const updated = await service.removeActionCodeFromCart({ id: cartId, input: { actionCode: code }, language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters() });
       setCart(updated);
       return updated;
     } catch (e: unknown) { setError(e instanceof Error ? e.message : 'Failed to remove action code'); }
@@ -298,7 +366,9 @@ export function useCart(options: UseCartOptions): UseCartReturn {
   }, [graphqlClient, cartId, language]);
 
   const getCrossupsells = useCallback(async (opts: GetCrossupsellsOptions): Promise<Crossupsell[]> => {
-    const { productId, clusterId, types, taxZone, imageVariantFilters } = opts;
+    // `opts.imageVariantFilters` is read through `opts` on purpose — destructuring
+    // it here would shadow the hook's resolver of the same name.
+    const { productId, clusterId, types, taxZone } = opts;
     if (!productId && !clusterId) return [];
     try {
       const service = createServices(graphqlClient).crossupsell;
@@ -311,8 +381,8 @@ export function useCart(options: UseCartOptions): UseCartReturn {
           ...(clusterId && { clusterIdsFrom: [clusterId] }),
         },
         language,
-        imageSearchFilters: configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput,
-        imageVariantFilters: imageVariantFilters ?? configuration?.imageVariantFiltersSmall as TransformationsInput,
+        imageSearchFilters: imageSearchFilters(),
+        imageVariantFilters: opts.imageVariantFilters ?? imageVariantFilters(),
         priceCalculateProductInput: {
           taxZone: taxZone || 'NL',
           ...(user && 'company' in user && { companyId: (user as Contact)?.company?.companyId }),
@@ -323,7 +393,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       const result = await service.getCrossupsells(variables);
       return result?.items ?? [];
     } catch { return []; }
-  }, [graphqlClient, language, configuration, user]);
+  }, [graphqlClient, language, user, imageSearchFilters, imageVariantFilters]);
 
-  return { cart, cartId, loading, error, checkoutAllowed, resolveCart, addItem, updateItemQuantity, updateItemNotes, deleteItem, addActionCode, removeActionCode, requestAuthorization, processCart, getCrossupsells, getMinQuantity, getStep };
+  return { cart, cartId, loading, error, checkoutAllowed, resolveCart, addItem, addItems, updateItemQuantity, updateItemNotes, deleteItem, addActionCode, removeActionCode, requestAuthorization, processCart, getCrossupsells, getMinQuantity, getStep };
 }

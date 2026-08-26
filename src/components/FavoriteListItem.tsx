@@ -20,7 +20,7 @@ import {
 } from '@propeller-commerce/propeller-sdk-v2';
 import AddToCart from './AddToCart';
 import ItemStock from './ItemStock';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
@@ -218,7 +218,7 @@ function FavoriteListItem(rawProps: FavoriteListItemProps) {
     if (!priceObj) return '';
     const value = useTax ? priceObj.net : priceObj.gross;
     if (!value && value !== 0) return '';
-    return formatPrice(value, { symbol: currency });
+    return formatPrice(value, { symbol: currency, locale: localeForLanguage(props.language) });
   })();
   function handleItemClick(e: React.MouseEvent): void {
     if (props.onItemClick) {

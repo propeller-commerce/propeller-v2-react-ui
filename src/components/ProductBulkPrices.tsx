@@ -7,12 +7,19 @@
 import * as React from 'react';
 import { ProductPrice, Contact, Customer } from '@propeller-commerce/propeller-sdk-v2';
 import type { IDiscount } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
 export interface ProductBulkPricesProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading.
+   */
+  language?: string;
+
   /**
    * Bulk price tiers from the product.
    * Obtain from `product.bulkPrices`.
@@ -139,7 +146,7 @@ function ProductBulkPrices(props: ProductBulkPricesProps) {
   function getPrice(tier: ProductPrice): string {
     const value = includeTax ? tier.net : tier.gross;
     if (value === null || value === undefined) return '';
-    return formatPrice(value, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(value, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function getQuantityLabel(tier: ProductPrice, index: number): string {
     const discount = tier.discount as
@@ -154,6 +161,11 @@ function ProductBulkPrices(props: ProductBulkPricesProps) {
     if (nextQty) return `${qty}\u2013${nextQty - 1}`;
     return `${qty}+`;
   }
+  // An explicit empty `title` label means "render no heading" — the check
+  // below relies on it. getLabel() treats '' as missing and returns its English
+  // fallback, so the heading came back as "Volume pricing" in every locale;
+  // read the label directly here and only fall back when the key is absent.
+  const title = props.labels?.title ?? 'Volume pricing';
   return (
     <>
       {!isHidden && hasItems ? (
@@ -162,9 +174,9 @@ function ProductBulkPrices(props: ProductBulkPricesProps) {
             className={cn(`propeller-product-bulk-prices ${props.className || ''}`)}
             data-include-tax={includeTax ? 'true' : 'false'}
           >
-            {getLabel(props.labels, 'title', 'Volume pricing') ? (
+            {title ? (
               <h3 className="propeller-product-bulk-prices__title text-base font-semibold text-foreground mb-3">
-                {getLabel(props.labels, 'title', 'Volume pricing')}
+                {title}
               </h3>
             ) : null}
             <div className="propeller-product-bulk-prices__table-wrapper overflow-hidden rounded-container border border-border">

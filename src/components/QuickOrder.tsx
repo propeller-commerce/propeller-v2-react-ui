@@ -23,7 +23,7 @@ import type {
   MediaImageProductSearchInput,
   TransformationsInput,
 } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel, formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, formatPrice as formatPriceHelper, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import type { AnyUser } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { useQuickOrder, type QuickOrderMatch } from '../composables/react/useQuickOrder';
@@ -207,7 +207,7 @@ function QuickOrderInner(props: QuickOrderProps) {
   // currency`. Either way the returned string already contains the symbol, so
   // call sites render `displayPrice(n)` directly (no manual `currency` prefix).
   const displayPrice = (n: number) =>
-    props.formatPrice ? props.formatPrice(n) : formatPriceHelper(n, { symbol: currency });
+    props.formatPrice ? props.formatPrice(n) : formatPriceHelper(n, { symbol: currency, locale: localeForLanguage(props.language) });
   const L = (key: keyof NonNullable<QuickOrderProps['labels']>, fallback: string) =>
     getLabel(labels, key, fallback);
 

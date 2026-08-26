@@ -5,11 +5,18 @@
  * Verified C0.2 (2026-05-20).
  */
 import * as React from 'react';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getCountryName as _getCountryName } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 
 export interface OrderSummaryProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading.
+   */
+  language?: string;
+
   /** The order object from propeller-sdk-v2 */
   order: any;
 
@@ -120,7 +127,7 @@ function OrderSummary(props: OrderSummaryProps) {
     if (props.formatPrice) {
       return props.formatPrice(price);
     }
-    return formatPrice(price || 0, { symbol: props.currency ?? '€' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
 
   // Numeric day-first DD-MM-YYYY. Was hardcoded en-US (M/D/YYYY), which NL

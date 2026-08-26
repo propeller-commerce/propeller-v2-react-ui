@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BundleItem, Cart, CartBaseItem, CartMainItem, Cluster, Contact, Crossupsell, Customer, GraphQLClient, MediaImageProductSearchInput, Product, ProductInventory, TransformationsInput, YesNo } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useResolvedProps, type ResolveSpec } from '../composables/react/useResolvedProps';
-import { getLabel, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultItemStockImpl from './ItemStock';
 import { cn } from '../composables/shared/utils/cn';
@@ -302,7 +302,7 @@ function CartItem(rawProps: CartItemProps) {
   function getFormattedPrice(): string {
     const item = props.cartItem;
     const price = props.includeTax ? item?.totalSumNet || 0 : item?.totalSum || 0;
-    return formatPrice(price, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function isBundleItem(): boolean {
     return !!props.cartItem.bundle;
@@ -313,7 +313,7 @@ function CartItem(rawProps: CartItemProps) {
   function getBundlePrice(): string {
     const price = props.cartItem.bundle?.price?.net;
     if (price === undefined || price === null) return '';
-    return formatPrice(price, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function getBundleLeaderName(): string {
     const items = props.cartItem.bundle?.items;
@@ -329,7 +329,7 @@ function CartItem(rawProps: CartItemProps) {
     if (!leader) return '';
     const price = leader.price?.net;
     if (price === undefined || price === null) return '';
-    return formatPrice(price, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function getBundleNonLeaders(): BundleItem[] {
     const items = props.cartItem.bundle?.items;
@@ -342,7 +342,7 @@ function CartItem(rawProps: CartItemProps) {
   function getBundleItemPrice(bundleItem: BundleItem): string {
     const price = bundleItem.price?.net;
     if (price === undefined || price === null) return '';
-    return formatPrice(price, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function getCrossupsellName(item: Crossupsell): string {
     const product = item?.productTo || item?.clusterTo;
@@ -442,7 +442,7 @@ function CartItem(rawProps: CartItemProps) {
     if (!price) return '';
     const value = props.includeTax ? price.net : price.gross;
     if (value === undefined || value === null) return '';
-    return formatPrice(value, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(value, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
 
   async function handleAddCrossupsellToCart(item: Crossupsell): Promise<void> {
@@ -770,7 +770,7 @@ function CartItemChildItems(props: { className?: string } = {}) {
           <span className="text-foreground-subtle hidden sm:inline">-</span>
           <span className="text-foreground-subtle text-xs self-center">{child.product.sku}</span>
           <div className="flex-1 border-b border-dotted border-border mx-1 mb-1" />
-          <span className="font-semibold text-foreground">{formatPrice(child.totalSum, { symbol: resolved.currency ?? '€' })}</span>
+          <span className="font-semibold text-foreground">{formatPrice(child.totalSum, { symbol: resolved.currency ?? '€', locale: localeForLanguage(resolved.language) })}</span>
         </div>
       ))}
     </div>

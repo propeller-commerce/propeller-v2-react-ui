@@ -11,7 +11,7 @@ import { useState, useMemo } from 'react';
 import { Contact, Customer, GraphQLClient, Cart } from '@propeller-commerce/propeller-sdk-v2';
 import { usePurchaseAuthorizationRequests } from '../composables/react/usePurchaseAuthorization';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLanguageString } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as _formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
@@ -164,7 +164,7 @@ function PurchaseAuthorizationRequests(rawProps: PurchaseAuthorizationRequestsPr
 
   function formatPrice(price: number): string {
     if (props.formatPrice) return props.formatPrice(price);
-    return _formatPrice(price, { symbol: props.currency ?? '€' });
+    return _formatPrice(price, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
 
   const columnLabelKeys: Record<string, [string, string]> = {

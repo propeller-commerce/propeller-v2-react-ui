@@ -243,6 +243,9 @@ export interface ProductCardProps {
   // Per-card overrides for sub-components. Precedence:
   // explicit prop > ProductGridConfig context > infra > default.
   /** Replaces the default price block. Receives `PriceComponentProps`. */
+  /** Currency symbol used when formatting the price. Falls back to PropellerInfra.currency, then `'€'`. */
+  currency?: string;
+
   priceComponent?: React.ComponentType<import('@propeller-commerce/propeller-v2-core-ui').PriceComponentProps>;
   /** Replaces the default stock/availability block. Receives `StockComponentProps`. */
   stockComponent?: React.ComponentType<import('@propeller-commerce/propeller-v2-core-ui').StockComponentProps>;
@@ -301,6 +304,11 @@ const RESOLVE_SPEC: ResolveSpec<ProductCardProps> = {
   includeTax: { infra: 'includeTax' },
   portalMode: { infra: 'portalMode' },
   configuration: { infra: 'configuration' },
+  // Same entry ClusterCard has always had. Without it a shop priced in
+  // anything but euros had no route to the cards at all: the grid resolved the
+  // currency and then dropped it, and the card fell through to the package
+  // default on every price it rendered.
+  currency: { infra: 'currency', default: '€' },
   columns: { grid: 'columns', default: 3 },
   showPrice: { grid: 'showPrice' },
   showStock: { grid: 'showStock' },
@@ -876,6 +884,7 @@ function ProductCardPrice(props: {
           price={product.price}
           includeTax={derived.useTax}
           labels={resolved.priceLabels}
+          currency={resolved.currency}
         />
       </div>
     );
@@ -887,6 +896,8 @@ function ProductCardPrice(props: {
         includeTax={derived.useTax}
         priceSize={props.priceSize ?? 'text-base sm:text-lg'}
         labels={resolved.priceLabels}
+        currency={resolved.currency}
+        language={resolved.language}
         portalMode={resolved.portalMode}
         user={resolved.user}
         showLoginPrompt={false}

@@ -11,11 +11,18 @@ import { useState } from 'react';
 import { Contact, Customer, DateSearchInput, DecimalSearchInput, GraphQLClient, Order, OrderSortField, OrderSortInput, OrderType, SortOrder } from '@propeller-commerce/propeller-sdk-v2';
 import { useOrders, type OrderSearchForm } from '../composables/react/useOrders';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
 export interface OrderListProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading. Resolved from `<PropellerProvider>` when omitted.
+   */
+  language?: string;
+
   /** The authenticated user (Contact or Customer). Resolved from PropellerProvider when omitted. */
   user?: Contact | Customer | null;
 
@@ -176,7 +183,7 @@ function OrderList(rawProps: OrderListProps) {
   function formatPrice(price: number): string {
     if (props.formatPrice) return props.formatPrice(price);
     if (!price) return '-';
-    return formatPriceHelper(price, { symbol: props.currency ?? '€' });
+    return formatPriceHelper(price, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
 
   function getStatusColor(status: string): string {
@@ -663,8 +670,24 @@ function OrderList(rawProps: OrderListProps) {
           )}
         </>
       ) : (
-        <div className="propeller-order-list__loading p-8 text-center text-muted-foreground">
-          {getLabel(props.labels, 'loading', 'Loading orders...')}
+        // A centred line of text collapsed the list to one row and then
+        // snapped back, which is what made a language switch on the account
+        // pages look broken. Skeleton rows hold the layout instead.
+        <div
+          className={`propeller-order-list__loading${props.flat ? '' : ' bg-card rounded-container shadow'} p-4`}
+          aria-busy="true"
+          aria-label={getLabel(props.labels, 'loading', 'Loading orders...')}
+        >
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="propeller-order-list__skeleton-row flex items-center gap-4 py-4 border-b border-border last:border-b-0 animate-pulse"
+            >
+              <div className="propeller-order-list__skeleton-line h-4 bg-surface-hover rounded w-24" />
+              <div className="propeller-order-list__skeleton-line h-4 bg-surface-hover rounded w-32" />
+              <div className="propeller-order-list__skeleton-line h-4 bg-surface-hover rounded w-20 ml-auto" />
+            </div>
+          ))}
         </div>
       )}
     </div>

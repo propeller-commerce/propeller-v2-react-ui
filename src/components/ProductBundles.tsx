@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { Bundle, BundleCondition, BundleItem, Cart, Contact, Customer, GraphQLClient, Product } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductBundles } from '../composables/react/useProductBundles';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
@@ -171,7 +171,7 @@ function ProductBundles(rawProps: ProductBundlesProps) {
   const props = useInfraProps(rawProps);
   const language = props.language as string | undefined;
   const currencySymbol = props.currency ?? '€';
-  const money = (value: number): string => formatPriceHelper(value, { symbol: currencySymbol });
+  const money = (value: number): string => formatPriceHelper(value, { symbol: currencySymbol, locale: localeForLanguage(props.language) });
   const [isMounted, setIsMounted] = useState(false);
   const [addingBundleId, setAddingBundleId] = useState<string | null>(null);
   const [lastAddedBundle, setLastAddedBundle] = useState<Bundle | null>(null);
@@ -416,7 +416,7 @@ function ProductBundles(rawProps: ProductBundlesProps) {
                         >
                           {addingBundleId === bundle.id
                             ? getLabel(props.labels, 'adding', 'Adding...')
-                            : getLabel(props.labels, 'addToCart', 'In cart')}
+                            : getLabel(props.labels, 'addToCart', 'Add to cart')}
                         </button>
                       </>
                     ) : props.showLoginPrompt !== false ? (

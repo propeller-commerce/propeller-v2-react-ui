@@ -1,6 +1,6 @@
 {
   "name": "@propeller-commerce/propeller-v2-react-ui",
-  "version": "0.18.0",
+  "version": "0.19.0",
   "description": "React component library for Propeller Commerce — ready-made e-commerce UI, headless composables, and SDK glue.",
   "license": "MIT",
   "type": "module",
@@ -57,7 +57,7 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@propeller-commerce/propeller-v2-core-ui": "^0.6.2",
+    "@propeller-commerce/propeller-v2-core-ui": "^0.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lodash.debounce": "^4.0.8",

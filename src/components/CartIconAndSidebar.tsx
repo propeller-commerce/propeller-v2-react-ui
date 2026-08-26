@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { Cart, CartMainItem, Contact, Customer, GraphQLClient, PurchaseAuthorizationConfig, PurchaseRole } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultCartBonusItemsImpl from './CartBonusItems';
 import CartItem from './CartItem';
@@ -85,7 +85,8 @@ export interface CartIconAndSidebarProps {
   /**
    * Labels for the component.
    * Available keys: cartIconLabel, totalLabel, itemsLabel, emptyCart,
-   * continueShopping, qty, total, checkoutButton, cartPageButton, closeLabel
+   * continueShopping, qty, total, totalExclVat, checkoutButton, cartPageButton,
+   * closeLabel
    */
   labels?: Record<string, string>;
 
@@ -176,7 +177,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
   const CartItemImpl = props.cartItemComponent ?? CartItem;
   const currencySymbol = props.currency ?? '€';
   const money = (value: number | null | undefined): string =>
-    value === undefined || value === null ? '' : formatPrice(value, { symbol: currencySymbol });
+    value === undefined || value === null ? '' : formatPrice(value, { symbol: currencySymbol, locale: localeForLanguage(props.language) });
   // --- composable ---
   const { requestAuthorization } = useCart({
     graphqlClient: props.graphqlClient!,
@@ -209,6 +210,15 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
   const useTax = !!props.includeTax;
   const totalRaw = useTax ? props.cart?.total?.totalNet : props.cart?.total?.totalGross;
   const totalPrice = totalRaw === undefined || totalRaw === null ? money(0) : money(totalRaw);
+  // The figure follows the toggle, so the label has to as well. In excl. mode
+  // this is the cart page's "Total excl. VAT", not its "Total" — an unqualified
+  // "Total" here named a number that was one VAT amount below what the shopper
+  // is charged, and the mini-cart is the figure they see first.
+  function totalLabel(key: string): string {
+    return useTax
+      ? getLabel(props.labels, key, 'Total')
+      : getLabel(props.labels, 'totalExclVat', 'Total excl. VAT');
+  }
   const sidebarTitle =
     props.cartSidebarTitle || props.labels?.['cartSidebarTitle'] || 'Shopping cart';
 
@@ -311,7 +321,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
           <div className="propeller-cart-icon__popover absolute top-full right-0 mt-1 z-40 bg-popover border border-border rounded-container shadow-lg px-3 py-2 min-w-[140px] text-sm whitespace-nowrap">
             <div className="flex justify-between gap-4">
               <span className="propeller-cart-icon__popover-label text-muted-foreground">
-                {getLabel(props.labels, 'totalLabel', 'Total')}
+                {totalLabel('totalLabel')}
               </span>
               <span className="propeller-cart-icon__popover-total font-semibold text-foreground">
                 {totalPrice}
@@ -463,7 +473,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
                 <div className="propeller-cart-icon__sidebar-footer px-5 py-4 border-t border-border space-y-3 bg-surface-hover">
                   <div className="propeller-cart-icon__total-row flex justify-between items-center">
                     <span className="propeller-cart-icon__total-label text-sm font-medium text-muted-foreground">
-                      {getLabel(props.labels, 'total', 'Total')}
+                      {totalLabel('total')}
                     </span>
                     <span className="propeller-cart-icon__total-value text-base font-bold text-foreground">
                       {totalPrice}

@@ -11,15 +11,26 @@ import { useState } from 'react';
 import { Cart, Contact, Customer, GraphQLClient, PurchaseRole } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
+import { cn } from '../composables/shared/utils/cn';
 
 export interface CartSummaryProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading. Resolved from `<PropellerProvider>` when omitted.
+   */
+  language?: string;
+
   /** The shopping cart used to populate the cart summary data */
   cart: Cart;
 
   /** Cart summary block title */
   title?: string;
+
+  /** Extra classes for the panel root, merged over the defaults via tailwind-merge. */
+  className?: string;
 
   /** Labels for the component */
   labels?: Record<string, string>;
@@ -132,7 +143,7 @@ function CartSummary(rawProps: CartSummaryProps) {
     if (props.formatPrice) {
       return props.formatPrice(price);
     }
-    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function subtotal(): number {
     return props.cart?.total?.subTotal || 0;
@@ -220,7 +231,16 @@ function CartSummary(rawProps: CartSummaryProps) {
   }
 
   return (
-    <div className="propeller-cart-summary w-full bg-card space-y-3">
+    <div
+      className={cn(
+        // Padding, radius and shadow to match ActionCode, which sits directly
+        // under this panel on the cart page. Without them the summary painted
+        // a card background with its text against the edges and a full-bleed
+        // checkout button — the same column, two different card treatments.
+        'propeller-cart-summary w-full bg-card p-6 rounded-container shadow space-y-3',
+        props.className
+      )}
+    >
       <h2 className="propeller-cart-summary__title text-xl font-bold mb-4">{title()}</h2>
       {showSubtotal() ? (
         <div className="propeller-cart-summary__row flex justify-between text-muted-foreground" data-row="subtotal">

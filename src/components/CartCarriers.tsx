@@ -9,12 +9,19 @@ import * as React from 'react';
 
 import { useState, useEffect } from 'react';
 import { Cart, CartCarrier } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 
 import { pickPreselected } from '../composables/shared/utils/preselect';
 
 export interface CartCarriersProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading.
+   */
+  language?: string;
+
   /** Shopping cart object from which the carriers will be displayed */
   cart: Cart;
 
@@ -50,7 +57,7 @@ function CartCarriers(props: CartCarriersProps) {
   const carriers: CartCarrier[] = props.cart?.carriers || [];
   function formatCarrierPrice(price: number): string {
     if (props.formatPrice) return props.formatPrice(price);
-    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function handleSelect(carrier: CartCarrier): void {
     setSelectedName(carrier.name);

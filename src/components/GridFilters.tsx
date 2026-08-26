@@ -118,6 +118,9 @@ export interface GridFiltersProps {
   /** Translated labels keyed by the slugs used inside the component (see
    * `getLabel` calls). Missing keys fall back to the English defaults. */
   labels?: Record<string, string>;
+
+  /** Currency symbol shown in the price-range inputs. Falls back to PropellerInfra.currency, then `'€'`. */
+  currency?: string;
 }
 /**
  * Faceted filter sidebar for a product grid: collapsible attribute checkbox
@@ -127,6 +130,9 @@ export interface GridFiltersProps {
 function GridFilters(rawProps: GridFiltersProps) {
   // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  // The glyph in the price inputs was a literal euro, so a non-euro shop had no
+  // handle on it beyond the BEM class.
+  const currencySymbol = (props.currency as string) ?? '€';
   // Seed directly from `activeTextFilters` (not `{}` + a sync effect) so the
   // ticked checkboxes are correct on the very first render — including SSR,
   // where the sync effect below has not run. A restored filtered URL must
@@ -473,7 +479,7 @@ function GridFilters(rawProps: GridFiltersProps) {
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
                 <span className="propeller-grid-filters__price-currency absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground-subtle pointer-events-none">
-                  €
+                  {currencySymbol}
                 </span>
                 <input
                   type="number"
@@ -489,7 +495,7 @@ function GridFilters(rawProps: GridFiltersProps) {
               <span className="propeller-grid-filters__price-separator text-foreground-subtle text-sm select-none">–</span>
               <div className="relative flex-1">
                 <span className="propeller-grid-filters__price-currency absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-foreground-subtle pointer-events-none">
-                  €
+                  {currencySymbol}
                 </span>
                 <input
                   type="number"

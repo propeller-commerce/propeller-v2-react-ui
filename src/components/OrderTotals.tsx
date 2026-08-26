@@ -6,10 +6,17 @@
  */
 import * as React from 'react';
 import { Order, OrderDiscountType, OrderTotalTaxPercentage } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 
 export interface OrderTotalsProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading.
+   */
+  language?: string;
+
   /** The order/quote used to populate the summary data */
   order: Order;
 
@@ -62,7 +69,7 @@ function OrderTotals(props: OrderTotalsProps) {
 
   function formatItemPrice(price: number): string {
     if (props.formatPrice) return props.formatPrice(price);
-    return formatPrice(price || 0, { symbol: props.currency ?? '€' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
   const subtotal = total?.gross || 0;
   const hasDiscount = !!total

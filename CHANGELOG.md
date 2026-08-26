@@ -8,6 +8,80 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.19.0] - 2026-08-26
+
+### Added
+
+- **`useCart().addItems(items)`** — sequential bulk add that threads each add's
+  resolved cart id into the next. "Add this whole set to the basket" is a normal
+  requirement (kits, re-order, recipe packs) and there was no bulk call, so every
+  consumer wrote the loop themselves and hit the bug below.
+- **`currency` on `ProductCardProps` / `ProductGridProps`**, resolved from
+  `<PropellerProvider>` like `ClusterCard` already did.
+- **`className` on `CartSummaryProps`** and **`inputClassName` on
+  `SearchBarProps`**, merged over the defaults through `tailwind-merge`.
+- **`configuration` on `OrderItemCardProps`** — supply the host's URL builders
+  and the item link is generated the way every other link on the storefront is.
+- **Bonus items in the add-to-cart modal.** A promotion granting a free product
+  said nothing at the moment it fired; the shopper only found it by opening the
+  cart later, which is after it can influence them. Only the items *this* add
+  earned are shown. `bonusItemsLabels` overrides the block's labels.
+
+### Fixed
+
+- **`addItem` could not add more than one product per tick.** It resolved the
+  cart id from React state, which does not update until the next render, so a
+  loop sent the same stale id every iteration: the 2nd..nth add failed with
+  "No cart ID provided", or — with `createCart` — quietly started a NEW cart per
+  product so only the last one survived. Neither failure throws, so both looked
+  like the adds had simply vanished. The id now lives in a ref written the
+  moment a cart resolves.
+- **Cart lines lost their images unless every add path passed `configuration`.**
+  The media arguments are optional and nothing warned; the mutation succeeded
+  and the returned items carried no `imageVariants` at all, so the shopper saw
+  empty tiles for products with perfectly good PIM images — two screens away
+  from the call site. The hook now defaults them; an explicit `configuration`
+  still wins.
+- **A non-euro shop could not change the currency in the catalogue.**
+  `ProductGrid` resolved a currency and never forwarded it, so every card fell
+  through to the package's `€`. `GridFilters`' price inputs and the active
+  price-filter chip hardcoded the glyph too — the chip had no prop and no class,
+  so no userland fix existed.
+- **Prices used Dutch separators in every language.** Number format now follows
+  the storefront language via core-ui's `localeForLanguage`, so an English shop
+  renders `£3.45` rather than `£ 3,45`. Components that format money take a
+  `language` prop, resolved from the provider where they already read infra.
+- **Search autosuggest and order-item links dropped the locale prefix.** Both
+  built `/product/:id/:slug` from literals instead of the host's URL builders,
+  so on a prefixed storefront they sent the visitor to the default language.
+  They now use `configuration.urls` when supplied, with the literals as a bare-
+  mount fallback.
+- **`ProductBulkPrices` ignored an explicit empty `title`.** The heading is
+  resolved with `getLabel`, which treats `''` as missing and substitutes its
+  English default — so the component's own "no title, no heading" branch was
+  dead code and the block rendered "Volume pricing" on a Dutch page.
+- **The mini-cart labelled an excl-VAT figure "Total".** The cart page calls the
+  same number "Total excl. VAT" and reserves "Total" for the incl-VAT figure, so
+  the first number a shopper saw understated the price by one VAT amount. The
+  label now follows the same switch the figure does.
+- **`CartSummary` painted a card background with no card.** No padding, radius
+  or shadow, directly above a properly styled `ActionCode` in the same column.
+- **`SearchBar`'s input was styled for a dark header** (`bg-white/95
+  border-white/20`), rendering as a white-on-white ghost on a light one. It now
+  uses the themed surface and border tokens.
+- **`ProductBundles`' add button read "In cart"**, a status rather than the
+  action it performs, where every other cart control in the package says
+  "Add to cart".
+- **`OrderList` showed a bare line of text while loading**, collapsing the list
+  and snapping it back — most visible when switching language on the account
+  pages. It renders skeleton rows that hold the layout instead.
+
+### Changed
+
+- `AddToCartProps.onAddToCart` may return a promise, and `useCart` awaits the
+  override. Matches the widened slot contract in core-ui 0.7.0.
+- Requires `@propeller-commerce/propeller-v2-core-ui` `^0.7.0`.
+
 ## [0.18.0] - 2026-08-20
 
 ### Added

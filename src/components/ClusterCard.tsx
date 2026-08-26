@@ -18,7 +18,7 @@ import {
   ProductInventory,
 } from '@propeller-commerce/propeller-sdk-v2';
 import ItemStock from './ItemStock';
-import { getLabel, isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, isContentHidden, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import {
   getClusterImageUrl,
   getClusterSku,
@@ -317,7 +317,7 @@ function ClusterCard(rawProps: ClusterCardProps) {
   const priceObj = contentHidden ? undefined : cluster?.defaultProduct?.price;
   const priceValue = useTax ? priceObj?.net : priceObj?.gross;
   const clusterPrice =
-    props.showPrice === false ? '' : formatPrice(priceValue, { symbol: props.currency ?? '€' });
+    props.showPrice === false ? '' : formatPrice(priceValue, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
 
   function handleClusterClick(e: React.MouseEvent): void {
     if (props.onClusterClick) {

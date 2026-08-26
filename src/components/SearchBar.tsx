@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { GraphQLClient, Product, Cluster, Contact, Customer } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductSearch } from '../composables/react/useProductSearch';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
@@ -135,6 +135,9 @@ export interface SearchBarProps {
   /** Additional class name for the container */
   containerClassName?: string;
 
+  /** Extra classes for the search input, merged over the defaults via tailwind-merge. */
+  inputClassName?: string;
+
   /** Tax zone used for price calculation. Defaults to 'NL'. */
   taxZone?: string;
 
@@ -171,7 +174,16 @@ export interface SearchBarProps {
   clearSignal?: number;
 }
 
-function mapToSearchBarResult(item: Product | Cluster, language?: string): SearchBarResult {
+type SearchUrlBuilders = {
+  getProductUrl?: (product: Product, language?: string) => string;
+  getClusterUrl?: (cluster: Cluster, language?: string) => string;
+};
+
+function mapToSearchBarResult(
+  item: Product | Cluster,
+  language?: string,
+  urls?: SearchUrlBuilders,
+): SearchBarResult {
   const isCluster = 'clusterId' in item;
   const displayItem = isCluster ? (item as Cluster).defaultProduct : item;
   const id = isCluster ? (item as Cluster).clusterId : (item as Product).productId;
@@ -179,7 +191,13 @@ function mapToSearchBarResult(item: Product | Cluster, language?: string): Searc
   // wrong-language link on every other storefront — the name four
   // lines below was already resolved by language.
   const slug = getLocalizedValue(item.slugs, language, '');
-  const url = isCluster ? '/cluster/' + id + '/' + slug : '/product/' + id + '/' + slug;
+  // Build the href with the host's own URL builders when it supplies them —
+  // they are what applies the storefront's locale prefix (and its configured
+  // URL pattern). The literals below are only a fallback for a bare mount; on
+  // a prefixed storefront they emit links into the default language.
+  const url = isCluster
+    ? urls?.getClusterUrl?.(item as Cluster, language) || '/cluster/' + id + '/' + slug
+    : urls?.getProductUrl?.(item as Product, language) || '/product/' + id + '/' + slug;
   const priceNet = displayItem?.price?.net || 0;
   const priceGross = displayItem?.price?.gross || 0;
   // Prefer the name in the active language; fall back to the first available.
@@ -239,7 +257,13 @@ function SearchBar(rawProps: SearchBarProps) {
 
   const results: SearchBarResult[] = searchResults
     .slice(0, maxResults)
-    .map((item) => mapToSearchBarResult(item as Product | Cluster, props.language));
+    .map((item) =>
+      mapToSearchBarResult(
+        item as Product | Cluster,
+        props.language,
+        (props.configuration as { urls?: SearchUrlBuilders } | undefined)?.urls,
+      ),
+    );
 
   const itemsFound = searchItemsFound;
 
@@ -249,7 +273,7 @@ function SearchBar(rawProps: SearchBarProps) {
     if (props.formatPrice) {
       return props.formatPrice(price);
     }
-    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
 
   // Match ProductPrice: the toggle picks which value leads. SDK mapping \u2014
@@ -369,7 +393,14 @@ function SearchBar(rawProps: SearchBarProps) {
           <input
             type="search"
             autoComplete="off"
-            className="propeller-search-bar__input w-full pl-10 pr-10 py-2 bg-white/95 border border-white/20 rounded-container focus:outline-none focus:ring-2 focus:ring-secondary placeholder:text-muted-foreground"
+            className={cn(
+              // Themed surface + border rather than the white-on-white the
+              // boilerplate's dark header band happened to make work: on a
+              // light header `bg-white/95 border-white/20` rendered as an
+              // invisible input.
+              'propeller-search-bar__input w-full pl-10 pr-10 py-2 bg-card border border-input rounded-container focus:outline-none focus:ring-2 focus:ring-secondary placeholder:text-muted-foreground',
+              props.inputClassName
+            )}
             placeholder={props.placeholder || 'Search products...'}
             value={localTerm}
             onChange={(e) => handleInputChange((e.target as HTMLInputElement).value)}

@@ -9,13 +9,20 @@ import * as React from 'react';
 
 import { useState, useEffect } from 'react';
 import { Cart, CartPaymethod, Contact, Customer } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { pickPreselected } from '../composables/shared/utils/preselect';
 
 export interface CartPaymethodsProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading. Resolved from `<PropellerProvider>` when omitted.
+   */
+  language?: string;
+
   /** Shopping cart object from which the payment methods will be displayed */
   cart: Cart;
 
@@ -81,7 +88,7 @@ function CartPaymethods(rawProps: CartPaymethodsProps) {
   });
   function formatMethodPrice(price: number): string {
     if (props.formatPrice) return props.formatPrice(price);
-    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC' });
+    return formatPrice(price || 0, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   // Localized display name: host override by code \u2192 backend name \u2192 code.
   function methodName(method: CartPaymethod): string {

@@ -231,6 +231,9 @@ const DEFAULT_LABELS: Record<string, string> = {
 function GridToolbar(rawProps: GridToolbarProps) {
   // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  // The active price-filter chip rendered its euro inline as text — no prop and
+  // no class, so a non-euro shop had no way to reach it at all.
+  const currencySymbol = ((props as { currency?: string }).currency) ?? '€';
   // The field/order useState seeds are enum values; widening to `string`
   // here lets the prop-sync effects below adopt arbitrary strings the parent
   // passes (URL state may carry either the enum value or its key form).
@@ -454,7 +457,8 @@ function GridToolbar(rawProps: GridToolbarProps) {
                 if (props.onPriceFilterRemove) props.onPriceFilterRemove();
               }}
             >
-              {getLabel('price')}: €{(props.priceFilterMin as number) ?? 0} – €
+              {getLabel('price')}: {currencySymbol}
+              {(props.priceFilterMin as number) ?? 0} – {currencySymbol}
               {(props.priceFilterMax as number) ?? '∞'}
               <span className="propeller-grid-toolbar__filter-badge-remove">×</span>
             </span>

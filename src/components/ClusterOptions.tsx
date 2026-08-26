@@ -9,7 +9,7 @@ import * as React from 'react';
 
 import { useState } from 'react';
 import { ClusterOption, Contact, Customer, Product, YesNo } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel, getLocalizedValue, isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, isContentHidden, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 
 import { useInfraProps } from '../composables/react/useInfraProps';
@@ -134,8 +134,8 @@ export interface ClusterOptionsProps {
  * to avoid calling state methods with arguments inside JSX.
  */
 
-function formatPrice(price: number, currency: string): string {
-  return formatPriceHelper(price, { symbol: currency });
+function formatPrice(price: number, currency: string, language?: string): string {
+  return formatPriceHelper(price, { symbol: currency, locale: localeForLanguage(language) });
 }
 
 // `names[0]` is the catalog's default-language entry, so reading it directly
@@ -184,7 +184,7 @@ function ClusterOptions(rawProps: ClusterOptionsProps) {
           productIdStr: p.productId.toString(),
           label: hidePrices
             ? getProductName(p, language)
-            : `${getProductName(p, language)} \u2014 ${formatPrice(p.price?.gross || 0, props.currency ?? '\u20ac')}`,
+            : `${getProductName(p, language)} \u2014 ${formatPrice(p.price?.gross || 0, props.currency ?? '\u20ac', language)}`,
         }));
         let previewImageUrl = '';
         let previewName = '';
@@ -198,7 +198,7 @@ function ClusterOptions(rawProps: ClusterOptionsProps) {
             previewName = getProductName(selectedProduct, language);
             previewPrice = hidePrices
               ? ''
-              : formatPrice(selectedProduct.price?.gross || 0, props.currency ?? '€');
+              : formatPrice(selectedProduct.price?.gross || 0, props.currency ?? '€', props.language);
           }
         }
         const isRequired = option.isRequired === YesNo.Y;

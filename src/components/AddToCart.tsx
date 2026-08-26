@@ -23,10 +23,11 @@ import {
 } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getProductImageUrl, getProductSku, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import CartBonusItems from './CartBonusItems';
 
 export interface AddToCartProps {
   /** GraphQL client for the Propeller SDK. Resolved from PropellerProvider when omitted. */
@@ -100,7 +101,7 @@ export interface AddToCartProps {
     notes?: string,
     price?: number,
     showModal?: boolean
-  ) => Cart;
+  ) => Cart | Promise<Cart>;
 
   /**
    * Callback triggered after adding the product to cart.
@@ -131,6 +132,12 @@ export interface AddToCartProps {
 
   /** Additional CSS class for the root element */
   className?: string;
+
+  /**
+   * Labels for the bonus-items block in the success modal.
+   * Keys: `title` ('Bonus items'), `sku` ('SKU').
+   */
+  bonusItemsLabels?: Record<string, string>;
 
   /** Callback fired when the "Proceed to checkout" modal button is clicked */
   onProceedToCheckout?: () => void;
@@ -288,6 +295,10 @@ function AddToCart(rawProps: AddToCartProps) {
   const [modalVisible, setModalVisible] = useState<boolean>(() => false);
   const [addedCartItem, setAddedCartItem] = useState<CartMainItem | null>(() => null);
   const [activeFullCart, setActiveFullCart] = useState<Cart | null>(() => null);
+  // Bonus items this add earned. A promotion that grants a free product said
+  // nothing at the moment it fired — the shopper only found it by opening the
+  // cart later, which is exactly the moment it can no longer influence them.
+  const [grantedBonusItems, setGrantedBonusItems] = useState<CartBaseItem[]>(() => []);
   const [includeTax] = useState<boolean>(() => false);
 
   // --- display helpers ---
@@ -334,9 +345,9 @@ function AddToCart(rawProps: AddToCartProps) {
     if (addedCartItem) {
       const useTax: boolean = props.includeTax !== undefined ? !!props.includeTax : includeTax;
       const price = useTax ? addedCartItem.totalSumNet : addedCartItem.totalSum;
-      return formatPrice(price, { symbol: props.currency ?? '€' });
+      return formatPrice(price, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
     }
-    return formatPrice(props.price !== undefined ? props.price : (props.product as Product)?.price?.gross, { symbol: props.currency ?? '€' });
+    return formatPrice(props.price !== undefined ? props.price : (props.product as Product)?.price?.gross, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
   function getModalSku(): string {
     if (addedCartItem) return addedCartItem.product?.sku || '';
@@ -398,12 +409,34 @@ function AddToCart(rawProps: AddToCartProps) {
   function closeModal(): void {
     setModalVisible(false);
     setAddedCartItem(null);
+    setGrantedBonusItems([]);
+  }
+
+  /**
+   * The bonus items present after the add that were not there before it.
+   *
+   * With no `before` cart to compare against — the very first add after a page
+   * load, where the hook has not resolved a cart yet — every bonus item in the
+   * cart is reported. That over-reports on a cart that already held bonus
+   * items; showing them is still better than showing nothing.
+   */
+  function newBonusItems(before: Cart | null, after: Cart | undefined): CartBaseItem[] {
+    const granted = after?.bonusItems ?? [];
+    if (granted.length === 0) return [];
+    const previous = before?.bonusItems;
+    if (!previous) return granted;
+    const seen = new Map(previous.map((item) => [item.itemId, item.quantity ?? 0]));
+    return granted.filter((item) => (item.quantity ?? 0) > (seen.get(item.itemId) ?? 0));
   }
 
   // --- main action ---
   async function handleAddToCart(): Promise<void> {
     if (!props.graphqlClient) return;
     if (props.beforeAddToCart && !props.beforeAddToCart()) return;
+
+    // Snapshot before the mutation so the modal can tell which bonus items this
+    // particular add earned.
+    const cartBeforeAdd = activeFullCart ?? cart ?? null;
 
     const result = await addItem({
       product: props.product,
@@ -419,6 +452,7 @@ function AddToCart(rawProps: AddToCartProps) {
       afterAddToCart: (resultCart, addedItem) => {
         setActiveFullCart(resultCart);
         setAddedCartItem(resolveAddedItem(resultCart, addedItem || null));
+        setGrantedBonusItems(newBonusItems(cartBeforeAdd, resultCart));
         props.afterAddToCart?.(resultCart, addedItem || undefined);
       },
       enableStockValidation: props.enableStockValidation,
@@ -709,11 +743,22 @@ function AddToCart(rawProps: AddToCartProps) {
                           ((props.includeTax !== undefined ? !!props.includeTax : includeTax)
                             ? child.totalSumNet
                             : child.totalSum) ?? 0,
-                          { symbol: props.currency ?? '\u20AC' }
+                          { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) }
                         )}
                       </span>
                     </div>
                   ))}
+                </div>
+              ) : null}
+              {grantedBonusItems.length > 0 ? (
+                <div className="propeller-add-to-cart__modal-bonus-items mt-4 pt-4 border-t border-border-subtle">
+                  <CartBonusItems
+                    bonusItems={grantedBonusItems}
+                    includeTax={props.includeTax}
+                    currency={props.currency}
+                    language={props.language}
+                    labels={props.bonusItemsLabels}
+                  />
                 </div>
               ) : null}
             </div>

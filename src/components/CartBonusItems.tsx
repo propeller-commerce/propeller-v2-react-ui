@@ -7,7 +7,7 @@
 import * as React from 'react';
 
 import { Cart, CartBaseItem } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
@@ -57,7 +57,7 @@ function CartBonusItems(rawProps: CartBonusItemsProps) {
 
   const currency = props.currency ?? '€';
   const money = (value: number | null | undefined): string =>
-    formatPrice(value, { symbol: currency });
+    formatPrice(value, { symbol: currency, locale: localeForLanguage(props.language) });
   const productName = (item: CartBaseItem): string =>
     getLocalizedValue(item.product?.names, props.language as string, 'Product');
   const productImage = (item: CartBaseItem): string =>

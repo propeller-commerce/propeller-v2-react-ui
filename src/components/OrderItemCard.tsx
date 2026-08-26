@@ -5,8 +5,8 @@
  * Verified C0.2 (2026-05-20).
  */
 import * as React from 'react';
-import type { OrderItem } from '@propeller-commerce/propeller-sdk-v2';
-import { formatPrice, getLabel, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
+import type { Cluster, OrderItem, Product } from '@propeller-commerce/propeller-sdk-v2';
+import { formatPrice, getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultProductPriceImpl from './ProductPrice';
 import DefaultItemStockImpl from './ItemStock';
 
@@ -27,6 +27,20 @@ export interface OrderItemCardProps {
    * links.
    */
   language?: string;
+
+  /**
+   * URL builders from the host's configuration. Supply them and the item link
+   * is generated the same way every other link on the storefront is — which is
+   * what carries the locale prefix. Without it the component falls back to a
+   * bare `/product/:id/:slug`, and on a prefixed storefront that link drops the
+   * visitor onto the default language.
+   */
+  configuration?: {
+    urls?: {
+      getProductUrl?: (product: Product, language?: string) => string;
+      getClusterUrl?: (cluster: Cluster, language?: string) => string;
+    };
+  };
 
   /** Should the item title be a link to the PDP */
   titleLinkable?: boolean;
@@ -86,21 +100,28 @@ function getProductName(orderItem: OrderItem, language?: string): string {
   );
 }
 
-function getClusterUrl(orderItem: OrderItem, language?: string): string {
+type HostUrls = OrderItemCardProps['configuration'] extends infer C
+  ? C extends { urls?: infer U }
+    ? U
+    : never
+  : never;
+
+function getClusterUrl(orderItem: OrderItem, language?: string, urls?: HostUrls): string {
   const cluster = orderItem?.product?.cluster;
   if (!cluster) return '';
   const id = cluster.clusterId;
   const slug = getLocalizedValue(cluster.slugs, language, '');
   if (!id || !slug) return '';
-  return `/cluster/${id}/${slug}`;
+  return urls?.getClusterUrl?.(cluster as Cluster, language) || `/cluster/${id}/${slug}`;
 }
 
-function getProductUrl(orderItem: OrderItem, language?: string): string {
-  const cu = getClusterUrl(orderItem, language);
+function getProductUrl(orderItem: OrderItem, language?: string, urls?: HostUrls): string {
+  const cu = getClusterUrl(orderItem, language, urls);
   if (cu) return cu;
-  const id = orderItem?.product?.productId;
-  const slug = getLocalizedValue(orderItem?.product?.slugs, language, '');
-  if (id && slug) return `/product/${id}/${slug}`;
+  const product = orderItem?.product;
+  const id = product?.productId;
+  const slug = getLocalizedValue(product?.slugs, language, '');
+  if (id && slug) return urls?.getProductUrl?.(product as Product, language) || `/product/${id}/${slug}`;
   return '';
 }
 
@@ -128,7 +149,7 @@ function OrderItemCard(props: OrderItemCardProps) {
   const productName = getProductName(item, props.language);
   const productSku = item?.product?.sku || item?.sku || '';
   const productImage = item?.product?.media?.images?.items?.[0]?.imageVariants?.[0]?.url || '';
-  const productUrl = getProductUrl(item, props.language);
+  const productUrl = getProductUrl(item, props.language, props.configuration?.urls);
   const quantity = item?.quantity || 0;
   const priceTotal = item?.priceTotal || 0;
   const discount = item?.discount || 0;
@@ -143,7 +164,7 @@ function OrderItemCard(props: OrderItemCardProps) {
       return props.formatPrice(price);
     }
     if (!price && price !== 0) return '-';
-    return formatPrice(price, { symbol: props.currency ?? '€' });
+    return formatPrice(price, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
 
   const discountDisplay =

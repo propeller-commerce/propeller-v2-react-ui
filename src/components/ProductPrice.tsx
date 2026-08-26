@@ -6,12 +6,19 @@
  */
 import * as React from 'react';
 import { ClusterOption, Contact, Customer, Product, ProductPrice, YesNo } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
 export interface ProductPriceProps {
+  /**
+   * Storefront language ('EN', 'NL', …). Decides the number format prices are
+   * rendered in — without it they fall back to Dutch separators regardless of
+   * the language the shopper is reading.
+   */
+  language?: string;
+
   /**
    * ProductPrice object from the product.
    * Obtain from `product.price`.
@@ -76,7 +83,7 @@ function ProductPriceDisplay(props: ProductPriceProps) {
   }
   function formatPrice(value: number | null | undefined): string {
     if (value === null || value === undefined) return '';
-    return formatPriceHelper(value, { symbol: props.currency ?? '\u20AC' });
+    return formatPriceHelper(value, { symbol: props.currency ?? '\u20AC', locale: localeForLanguage(props.language) });
   }
   function getOptionsTotal(useNet: boolean): number {
     const options = props.options || [];

@@ -7,7 +7,7 @@
  */
 import * as React from 'react';
 import { BundleItem, Cart, CartMainItem, YesNo } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 
@@ -98,13 +98,13 @@ function ItemsOverview(rawProps: ItemsOverviewProps) {
 
   const currencySymbol = props.currency ?? '€';
   const money = (value: number | null | undefined): string =>
-    value === undefined || value === null ? '' : formatPrice(value, { symbol: currencySymbol });
+    value === undefined || value === null ? '' : formatPrice(value, { symbol: currencySymbol, locale: localeForLanguage(props.language) });
 
   function formatItemPrice(price: number): string {
     if (props.formatPrice) {
       return props.formatPrice(price);
     }
-    return formatPrice(price || 0, { symbol: currencySymbol });
+    return formatPrice(price || 0, { symbol: currencySymbol, locale: localeForLanguage(props.language) });
   }
 
   /** Line total on the active tax basis — the same fields `<CartItem>` reads. */
