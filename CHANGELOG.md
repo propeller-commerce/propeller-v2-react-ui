@@ -8,6 +8,32 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.19.2] - 2026-08-27
+
+### Fixed
+
+- **Money formatted at the Dutch default wherever the host didn't pass
+  `language`.** `localeForLanguage(undefined)` is `nl-NL`, so a component that
+  reads `props.language` straight off its props prints Dutch separators unless
+  every host remembers to thread the prop. `ProductCard` resolved it from
+  `<PropellerProvider>`; several others did not, so one English page could show
+  `€ 1,42` in its PDP hero price and `€1.70` on the cards beneath it.
+  - `ProductPrice` and `ProductBulkPrices` already had provider-resolving
+    wrappers on the main entry — but `OrderSummary` and `OrderTotals` did not,
+    and are exported from both entries, so a client host got the unresolved
+    build with no way to tell. Both now resolve `language` and `currency` from
+    the provider on the main entry; `/pure` still exports the context-free
+    versions for Server Components, which must pass `language` themselves.
+  - `CartCarriers` now resolves its infra props like the rest of the checkout
+    components, instead of reading them off its props.
+
+### Internal
+
+- Vitest now uses the automatic JSX runtime, matching the tsup build. It had
+  been defaulting to the classic runtime, so any source file importing only
+  named hooks — the context providers among them — threw "React is not defined"
+  under test while building and shipping perfectly well.
+
 ## [0.19.1] - 2026-08-26
 
 ### Fixed

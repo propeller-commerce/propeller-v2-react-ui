@@ -13,6 +13,7 @@ import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-co
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 
 import { pickPreselected } from '../composables/shared/utils/preselect';
+import { useInfraProps } from '../composables/react/useInfraProps';
 
 export interface CartCarriersProps {
   /**
@@ -50,7 +51,12 @@ export interface CartCarriersProps {
  * Renders the cart's available delivery carriers as a selectable grid,
  * showing each carrier's logo, price and delivery deadline.
  */
-function CartCarriers(props: CartCarriersProps) {
+function CartCarriers(rawProps: CartCarriersProps) {
+  // `language` and `currency` come from <PropellerProvider> unless the host
+  // passes them. Reading them straight off the props meant every host had to
+  // remember, and the carrier prices silently formatted at the `nl-NL`
+  // default on a shop reading in any other language.
+  const props = useInfraProps(rawProps);
   const [selectedName, setSelectedName] = useState('');
   const containerClass = props.carriersContainerClass || 'cart-carriers';
   const showLogo = props.showCarrierLogo !== false;

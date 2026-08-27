@@ -228,8 +228,8 @@ export {
   type QuickOrderUploadLine,
 } from './components/QuickOrder';
 export { default as OrderShipments, type OrderShipmentsProps } from './components/OrderShipments';
-export { default as OrderSummary, type OrderSummaryProps } from './components/OrderSummary';
-export { default as OrderTotals, type OrderTotalsProps } from './components/OrderTotals';
+export { default as OrderSummary, type OrderSummaryProps } from './components/OrderSummaryWithProvider';
+export { default as OrderTotals, type OrderTotalsProps } from './components/OrderTotalsWithProvider';
 export { default as PriceToggle, type PriceToggleProps } from './components/PriceToggle';
 export { default as ProductBulkPrices, type ProductBulkPricesProps } from './components/ProductBulkPricesWithProvider';
 export { default as ProductBundles, type ProductBundlesProps } from './components/ProductBundles';

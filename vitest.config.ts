@@ -14,6 +14,11 @@ import { defineConfig } from 'vitest/config';
  * see the project notes on the deferred F2 / component-test work.
  */
 export default defineConfig({
+  // Match the build (tsup sets `jsx: 'automatic'`). Vitest's esbuild default is
+  // the classic runtime, which needs `React` in scope — so a source file that
+  // imports only named hooks, as the context providers do, threw
+  // "React is not defined" under test while building and shipping fine.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
     include: ['src/**/*.test.{ts,tsx}'],
