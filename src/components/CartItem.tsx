@@ -457,11 +457,12 @@ function CartItem(rawProps: CartItemProps) {
     }
   }
 
-  // Mount-only: fetch related crossupsells once we know the cart context.
+  // Fetch on mount, and again on a company switch — crossupsells are priced for
+  // the active company.
   useEffect(() => {
     fetchCrossupsells();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [props.companyId]);
 
   // Re-sync local quantity/notes when the cart item changes externally —
   // e.g. server-side reconciliation after an optimistic update, or a

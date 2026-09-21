@@ -5,7 +5,7 @@
  * imported directly into a React Server Component. The 'use client' header
  * above marks this boundary to Next.js.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Product,
   Cluster,
@@ -37,6 +37,12 @@ export interface FavoriteListDetailsProps {
 
   /** The logged in user for which the favorite list is going to be displayed. Resolved from PropellerProvider when omitted. */
   user?: Contact | Customer;
+
+  /**
+   * Active company ID from the company switcher.
+   * Overrides the user's default company for price calculation.
+   * Triggers a re-fetch when changed. */
+  companyId?: number;
 
   /** The favorite list ID to display */
   favoriteListId: string;
@@ -416,8 +422,10 @@ function FavoriteListDetails(rawProps: FavoriteListDetailsProps) {
         if (contact.contactId) {
           priceInput.contactId = contact.contactId;
         }
-        if (contact.company?.companyId) {
-          priceInput.companyId = contact.company.companyId;
+        // Switcher selection wins; the contact's default company is the fallback.
+        const activeCompanyId = props.companyId ?? contact.company?.companyId;
+        if (activeCompanyId) {
+          priceInput.companyId = activeCompanyId;
         }
       }
     }
@@ -497,12 +505,17 @@ function FavoriteListDetails(rawProps: FavoriteListDetailsProps) {
     fetchList();
   }, []);
 
+  // Re-fetch on a new list, and on a company switch — prices are scoped to the
+  // active company, so the mounted list is stale once it changes.
+  const prevCompanyIdRef = useRef(props.companyId);
   useEffect(() => {
-    if (props.favoriteListId && props.favoriteListId !== prevListId) {
-      setPrevListId(props.favoriteListId);
-      fetchList();
-    }
-  }, [props.favoriteListId]);
+    const listChanged = !!props.favoriteListId && props.favoriteListId !== prevListId;
+    const companyChanged = props.companyId !== prevCompanyIdRef.current;
+    if (!listChanged && !companyChanged) return;
+    if (listChanged) setPrevListId(props.favoriteListId);
+    prevCompanyIdRef.current = props.companyId;
+    fetchList();
+  }, [props.favoriteListId, props.companyId]);
 
   return (
     <div className={cn(`propeller-favorite-list-details ${props.className || ''}`)} data-loading={loading ? 'true' : 'false'}>

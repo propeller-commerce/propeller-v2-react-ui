@@ -151,6 +151,9 @@ export interface UseCartReturn {
 export function useCart(options: UseCartOptions): UseCartReturn {
   const { graphqlClient, user, companyId, configuration, onCartCreated } = options;
   const language = options.language || configuration?.language || 'NL';
+  // Active company for price scoping: switcher selection first, contact default after.
+  const resolvedCompanyId =
+    companyId ?? (user && 'contactId' in user ? (user as Contact).company?.companyId : undefined);
 
   const [cart, setCart] = useState<Cart | null>(null);
   // The caller's cart id has to keep winning AFTER mount. This used to seed
@@ -385,7 +388,8 @@ export function useCart(options: UseCartOptions): UseCartReturn {
         imageVariantFilters: opts.imageVariantFilters ?? imageVariantFilters(),
         priceCalculateProductInput: {
           taxZone: taxZone || 'NL',
-          ...(user && 'company' in user && { companyId: (user as Contact)?.company?.companyId }),
+          // Switcher selection wins; the contact's default company is the fallback.
+          ...(resolvedCompanyId !== undefined && { companyId: resolvedCompanyId }),
           ...(user && 'contactId' in user && { contactId: (user as Contact)?.contactId }),
           ...(user && 'customerId' in user && { customerId: (user as Customer)?.customerId }),
         },
@@ -393,7 +397,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       const result = await service.getCrossupsells(variables);
       return result?.items ?? [];
     } catch { return []; }
-  }, [graphqlClient, language, user, imageSearchFilters, imageVariantFilters]);
+  }, [graphqlClient, language, user, resolvedCompanyId, imageSearchFilters, imageVariantFilters]);
 
   return { cart, cartId, loading, error, checkoutAllowed, resolveCart, addItem, addItems, updateItemQuantity, updateItemNotes, deleteItem, addActionCode, removeActionCode, requestAuthorization, processCart, getCrossupsells, getMinQuantity, getStep };
 }
