@@ -486,7 +486,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
 
             <div className="mt-8">
               <GridPagination
-                products={{ page: currentPage, pages: totalPages } as never}
+                products={{ page: currentPage, pages: totalPages }}
                 onPageChange={handlePageChange}
                 labels={rawProps.paginationLabels}
               />

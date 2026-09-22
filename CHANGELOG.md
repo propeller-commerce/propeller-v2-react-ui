@@ -21,10 +21,50 @@ between minor versions; breaking changes are called out below and in
   prices on screen after a company switch. Both now re-fetch when `companyId`
   changes.
 
+- The closed `CartIconAndSidebar` panel widened the document by its own content
+  width (~128px once the cart had items), giving signed-in users a stray
+  horizontal scrollbar. A transform does not remove an element from scrollable
+  overflow, so the parked drawer is now `visibility: hidden` while closed.
+  (PWP-1002)
+- `ProductDescription`, `ProductShortDescription`, `CategoryDescription` and
+  `CategoryShortDescription` emitted Tailwind Typography `prose` classes, but
+  the plugin is installed neither here nor in the consuming apps — so the
+  classes compiled to nothing while this package's own Preflight stripped list
+  markers, and bullet lists rendered as bare lines. The four surfaces now carry
+  real styling in `dist/styles.css`, with no consumer plugin required.
+  (PWP-1000)
+- `ItemStock` rendered `(120pcs)` with no separator between the count and the
+  unit label. (PWP-1005a)
+- `OrderList` filter labels carried Tailwind's `capitalize`, which title-cases
+  every word and mangled translated labels ("Terme De Recherche",
+  "Aangemaakt Op"). The dictionaries already carry the right casing.
+  (PWP-1005b)
+- `AccountIconAndMenu` hardcoded a dark-header scheme (`text-white`,
+  `hover:bg-white/10`) that rendered white-on-light, and styled its active
+  sidebar link with the `secondary` ramp where every other selected surface in
+  the package uses `primary`. Both now use theme tokens. (PWP-1005c)
+
 ### Added
 
 - `FavoriteListDetails` accepts a `companyId` prop, resolved from
   `PropellerProvider` when omitted.
+- `AccountIconAndMenu` accepts a `linkClassName` prop for its sidebar links,
+  which previously had no class escape hatch. (PWP-1005c)
+
+### Changed
+
+- `ProductDownloads.downloads` and `ProductVideos.videos` are now optional and
+  nullable, matching what the API actually returns — it answers `null`, not an
+  empty page, when a product has no documents or videos. Both components
+  already handled the absent case; only the types disagreed, which forced casts
+  at the `ProductTabs` call sites. Those are gone. (PWP-1009)
+- `GridPagination.products` is now structural (`{ page, pages }`) instead of a
+  full `ProductsResponse`. A real response still fits; callers holding the two
+  numbers on their own no longer need a cast. (PWP-1005e)
+- **Breaking (types):** `GridToolbar.viewMode` and `onViewChange` are narrowed
+  from `string` to `'grid' | 'list'`, matching their documented contract. A
+  consumer passing a plain `string` will need a cast or a narrower type.
+  (PWP-1005d)
 
 ## [0.19.2] - 2026-08-27
 

@@ -17,9 +17,10 @@ import { cn } from '../composables/shared/utils/cn';
 export interface ProductVideosProps {
   /**
    * Media videos for the product.
-   * Obtain from `product.media.videos`.
+   * Obtain from `product.media?.videos`. The API answers `null` rather than an
+   * empty page when a product has none, so this may be absent.
    */
-  videos: PaginatedMediaVideoResponse;
+  videos?: PaginatedMediaVideoResponse | null;
 
   /**
    * Language code used to resolve the correct localised video URI.

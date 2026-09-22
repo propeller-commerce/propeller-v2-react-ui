@@ -606,7 +606,7 @@ function FavoriteListDetails(rawProps: FavoriteListDetailsProps) {
               {props.showPagination !== false && getTotalPages() > 1 ? (
                 <div className="propeller-favorite-list-details__pagination mt-6">
                   <GridPaginationImpl
-                    products={getPaginationData() as unknown as ProductsResponse}
+                    products={getPaginationData()}
                     onPageChange={(page) => handlePageChange(page)}
                     variant={props.paginationVariant || 'compact'}
                   />

@@ -43,7 +43,7 @@ function CategoryShortDescription(props: CategoryShortDescriptionProps) {
       {!!html ? (
         <div className={cn(`propeller-category-short-description mb-6 ${props.className || ''}`)}>
           <div
-            className="propeller-category-short-description__content prose prose-slate max-w-none text-muted-foreground"
+            className="propeller-category-short-description__content text-muted-foreground"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         </div>

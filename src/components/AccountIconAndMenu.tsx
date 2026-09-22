@@ -186,6 +186,9 @@ export interface AccountIconAndMenuProps {
   /** Additional class name for the dropdown menu. */
   menuClassName?: string;
 
+  /** Additional class name for each sidebar menu link. */
+  linkClassName?: string;
+
   /**
    * Component variant.
    * - 'dropdown' (default): Header icon with popup menu
@@ -374,7 +377,9 @@ function AccountIconAndMenu(rawProps: AccountIconAndMenuProps) {
                         href={link.href}
                         onClick={(event) => handleMenuLinkClick(event, link.href)}
                         data-active={isActiveLink(link.href) ? 'true' : 'false'}
-                        className={`propeller-account-menu__link flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isActiveLink(link.href) ? 'bg-secondary/5 text-secondary border-l-2 border-secondary' : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground'}`}
+                        className={cn(
+                          `propeller-account-menu__link flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${isActiveLink(link.href) ? 'bg-primary/5 text-primary border-l-2 border-primary' : 'text-muted-foreground hover:bg-surface-hover hover:text-foreground'}${props.linkClassName ? ' ' + props.linkClassName : ''}`
+                        )}
                       >
                         {link.label}
                       </a>
@@ -402,7 +407,7 @@ function AccountIconAndMenu(rawProps: AccountIconAndMenuProps) {
             onClick={(event) => handleIconClick()}
             aria-label={getLabel(props.labels, 'accountLabel', 'Account')}
             data-open={menuOpen ? 'true' : 'false'}
-            className={cn(`propeller-account-menu__trigger inline-flex items-center gap-2 px-3 py-2 rounded-control text-sm font-medium transition-colors text-white hover:bg-white/10${props.iconClassName ? ' ' + props.iconClassName : ''}`)}
+            className={cn(`propeller-account-menu__trigger inline-flex items-center gap-2 px-3 py-2 rounded-control text-sm font-medium transition-colors text-foreground hover:bg-surface-hover${props.iconClassName ? ' ' + props.iconClassName : ''}`)}
           >
             <svg
               fill="none"

@@ -82,7 +82,7 @@ function ProductDescription(props: ProductDescriptionProps) {
         >
           {!shouldTruncate || expanded ? (
             <div
-              className="propeller-product-description__content prose prose-slate max-w-none text-muted-foreground"
+              className="propeller-product-description__content text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (

@@ -111,7 +111,7 @@ function ItemStock(props: ItemStockProps) {
                 {getStockStatusLabel()}
                 {getTotalQuantity() > 0 ? (
                   <span className="propeller-item-stock__count opacity-70">
-                    ({getTotalQuantity()}
+                    ({getTotalQuantity()}{' '}
                     {getLabel(props.labels, 'pieces', 'pcs')})
                   </span>
                 ) : null}

@@ -17,9 +17,10 @@ import { cn } from '../composables/shared/utils/cn';
 export interface ProductDownloadsProps {
   /**
    * Media documents for the product.
-   * Obtain from `product.media.documents`.
+   * Obtain from `product.media?.documents`. The API answers `null` rather than
+   * an empty page when a product has none, so this may be absent.
    */
-  downloads: PaginatedMediaDocumentResponse;
+  downloads?: PaginatedMediaDocumentResponse | null;
 
   /**
    * Language code used to resolve the correct localised document URL and label.

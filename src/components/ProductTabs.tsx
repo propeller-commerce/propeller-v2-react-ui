@@ -11,8 +11,6 @@ import { useState, useEffect } from 'react';
 import {
   Product,
   GraphQLClient,
-  PaginatedMediaDocumentResponse,
-  PaginatedMediaVideoResponse,
   AttributeResult,
 } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductSpecs } from '../composables/react/useProductSpecs';
@@ -312,16 +310,14 @@ function ProductTabs(rawProps: ProductTabsProps) {
                 ) : null}
                 {isActive('downloads') && isTabVisible('downloads') ? (
                   <ProductDownloadsImpl
-                    downloads={
-                      (props.product as Product).media?.documents as PaginatedMediaDocumentResponse
-                    }
+                    downloads={(props.product as Product).media?.documents}
                     language={(props.language as string) || 'NL'}
                     labels={props.downloadsLabels}
                   />
                 ) : null}
                 {isActive('videos') && isTabVisible('videos') ? (
                   <ProductVideosImpl
-                    videos={(props.product as Product).media?.videos as PaginatedMediaVideoResponse}
+                    videos={(props.product as Product).media?.videos}
                     language={(props.language as string) || 'NL'}
                     labels={props.videosLabels}
                   />
@@ -438,10 +434,7 @@ function ProductTabs(rawProps: ProductTabsProps) {
                   {isActive('downloads') ? (
                     <div className="propeller-product-tabs__accordion-panel px-4 pb-4">
                       <ProductDownloadsImpl
-                        downloads={
-                          (props.product as Product).media
-                            ?.documents as PaginatedMediaDocumentResponse
-                        }
+                        downloads={(props.product as Product).media?.documents}
                         language={(props.language as string) || 'NL'}
                         labels={props.downloadsLabels}
                       />
@@ -477,9 +470,7 @@ function ProductTabs(rawProps: ProductTabsProps) {
                   {isActive('videos') ? (
                     <div className="propeller-product-tabs__accordion-panel px-4 pb-4">
                       <ProductVideosImpl
-                        videos={
-                          (props.product as Product).media?.videos as PaginatedMediaVideoResponse
-                        }
+                        videos={(props.product as Product).media?.videos}
                         language={(props.language as string) || 'NL'}
                         labels={props.videosLabels}
                       />

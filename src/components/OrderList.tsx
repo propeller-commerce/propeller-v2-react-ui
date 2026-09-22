@@ -247,7 +247,7 @@ function OrderList(rawProps: OrderListProps) {
         <div className="propeller-order-list__filters mb-6 bg-card p-4 rounded-container shadow space-y-4">
           {searchFields().includes('term') ? (
             <div className="propeller-order-list__search-field w-full">
-              <label className="propeller-order-list__filter-label block text-sm font-medium text-muted-foreground capitalize mb-1">
+              <label className="propeller-order-list__filter-label block text-sm font-medium text-muted-foreground mb-1">
                 {getColumnLabel('term')}
               </label>
               <input
@@ -279,7 +279,7 @@ function OrderList(rawProps: OrderListProps) {
               .filter((f: string) => f !== 'term')
               ?.map((field) => (
                 <div className="space-y-1" key={field}>
-                  <label className="propeller-order-list__filter-label block text-sm font-medium text-muted-foreground capitalize">
+                  <label className="propeller-order-list__filter-label block text-sm font-medium text-muted-foreground">
                     {getColumnLabel(field)}
                   </label>
                   {field === 'createdAt' ? (

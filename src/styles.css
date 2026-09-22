@@ -239,6 +239,125 @@
   }
 }
 
+/*
+ * Rich-text description bodies — CMS/PIM HTML rendered via innerHTML.
+ *
+ * These four surfaces used to carry Tailwind Typography's `prose prose-slate`
+ * classes, but the plugin is not installed here or in the consuming apps, so
+ * the classes compiled to nothing while this package's own Preflight still
+ * applied `list-style: none; margin: 0; padding: 0` to `ul`/`ol` — bullet
+ * lists rendered as bare lines. Styling the elements here keeps the package
+ * self-contained: no consumer plugin, and it works the same in both apps.
+ */
+.propeller-product-description__content,
+.propeller-product-short-description,
+.propeller-category-description__content,
+.propeller-category-short-description__content {
+  line-height: 1.625;
+}
+
+.propeller-product-description__content :where(p),
+.propeller-product-short-description :where(p),
+.propeller-category-description__content :where(p),
+.propeller-category-short-description__content :where(p) {
+  margin-block: 0.75em;
+}
+
+.propeller-product-description__content :where(ul, ol),
+.propeller-product-short-description :where(ul, ol),
+.propeller-category-description__content :where(ul, ol),
+.propeller-category-short-description__content :where(ul, ol) {
+  margin-block: 0.75em;
+  padding-inline-start: 1.5em;
+}
+
+.propeller-product-description__content :where(ul),
+.propeller-product-short-description :where(ul),
+.propeller-category-description__content :where(ul),
+.propeller-category-short-description__content :where(ul) {
+  list-style: disc;
+}
+
+.propeller-product-description__content :where(ol),
+.propeller-product-short-description :where(ol),
+.propeller-category-description__content :where(ol),
+.propeller-category-short-description__content :where(ol) {
+  list-style: decimal;
+}
+
+.propeller-product-description__content :where(li),
+.propeller-product-short-description :where(li),
+.propeller-category-description__content :where(li),
+.propeller-category-short-description__content :where(li) {
+  margin-block: 0.25em;
+}
+
+.propeller-product-description__content :where(strong, b),
+.propeller-product-short-description :where(strong, b),
+.propeller-category-description__content :where(strong, b),
+.propeller-category-short-description__content :where(strong, b) {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.propeller-product-description__content :where(a),
+.propeller-product-short-description :where(a),
+.propeller-category-description__content :where(a),
+.propeller-category-short-description__content :where(a) {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.propeller-product-description__content :where(h1, h2, h3, h4, h5, h6),
+.propeller-product-short-description :where(h1, h2, h3, h4, h5, h6),
+.propeller-category-description__content :where(h1, h2, h3, h4, h5, h6),
+.propeller-category-short-description__content :where(h1, h2, h3, h4, h5, h6) {
+  margin-block: 1em 0.5em;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.propeller-product-description__content :where(table),
+.propeller-category-description__content :where(table) {
+  width: 100%;
+  margin-block: 0.75em;
+  border-collapse: collapse;
+}
+
+.propeller-product-description__content :where(th, td),
+.propeller-category-description__content :where(th, td) {
+  padding: 0.5em 0.75em;
+  border: 1px solid var(--border);
+  text-align: start;
+}
+
+/*
+ * CartIconAndSidebar — the off-canvas panel is always mounted and parked at
+ * `right:0` + `translate-x-full`, i.e. its box sits at [100vw, 100vw+width].
+ * A transform does not remove an element from scrollable overflow, so the
+ * closed drawer widened the document by its own content width (~128px once
+ * the cart had items and the unshrinkable rows/footer rendered) and gave
+ * signed-in users a stray horizontal scrollbar.
+ *
+ * `visibility: hidden` takes it out of the scrollable overflow region, the
+ * a11y tree and the tab order while closed, and is transition-safe: the
+ * delay lets the slide-out finish before it disappears. Keyed on the
+ * `data-open` attribute the component already emits.
+ */
+.propeller-cart-icon__sidebar[data-open='false'] {
+  visibility: hidden;
+  transition:
+    transform 300ms ease-in-out,
+    visibility 0s linear 300ms;
+}
+
+.propeller-cart-icon__sidebar[data-open='true'] {
+  visibility: visible;
+  transition:
+    transform 300ms ease-in-out,
+    visibility 0s linear 0s;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

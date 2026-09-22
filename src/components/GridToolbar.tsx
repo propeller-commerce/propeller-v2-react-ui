@@ -44,7 +44,7 @@ export interface GridToolbarProps {
    * Controls which icon the view-toggle button shows.
    * Defaults to 'grid'.
    */
-  viewMode?: string;
+  viewMode?: 'grid' | 'list';
 
   /**
    * Available page-size options shown in the per-page dropdown.
@@ -74,7 +74,7 @@ export interface GridToolbarProps {
    * Called when the user clicks the view-mode toggle button.
    * Receives the new mode: 'grid' or 'list'.
    */
-  onViewChange?: (mode: string) => void;
+  onViewChange?: (mode: 'grid' | 'list') => void;
 
   /**
    * Total products found — displayed as a result count on the left side.
@@ -242,7 +242,7 @@ function GridToolbar(rawProps: GridToolbarProps) {
   );
   const [currentSortOrder, setCurrentSortOrder] = useState<string>(SortOrder.DESC);
   const [currentOffset, setCurrentOffset] = useState(12);
-  const [currentViewMode, setCurrentViewMode] = useState('grid');
+  const [currentViewMode, setCurrentViewMode] = useState<'grid' | 'list'>('grid');
   function getLabel(key: string) {
     const labels = (props.labels as Record<string, string>) || {};
     return labels[key] !== undefined ? labels[key] : DEFAULT_LABELS[key] || key;
@@ -337,7 +337,7 @@ function GridToolbar(rawProps: GridToolbarProps) {
   useEffect(() => {
     if (props.viewMode) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrentViewMode(props.viewMode as string);
+      setCurrentViewMode(props.viewMode);
     }
   }, [props.viewMode]);
   return (

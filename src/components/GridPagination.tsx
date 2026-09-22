@@ -13,10 +13,11 @@ import { cn } from '../composables/shared/utils/cn';
 
 export interface GridPaginationProps {
   /**
-   * A ProductsResponse object for populating the pagination component.
-   * Reads `page` (current page), `pages` (total pages) from the response.
+   * Pagination state: `page` (current page) and `pages` (total pages).
+   * Structural, so a `ProductsResponse` fits as-is and callers holding the two
+   * numbers on their own — `useSpareParts`, `FavoriteListDetails` — need no cast.
    */
-  products: ProductsResponse;
+  products: Pick<ProductsResponse, 'page' | 'pages'> | { page?: number; pages?: number };
 
   /**
    * Called when the user navigates to a different page.

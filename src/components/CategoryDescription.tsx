@@ -78,7 +78,7 @@ function CategoryDescription(props: CategoryDescriptionProps) {
         >
           {!shouldTruncate || expanded ? (
             <div
-              className="propeller-category-description__content prose prose-slate max-w-none text-muted-foreground"
+              className="propeller-category-description__content text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: html }}
             />
           ) : (
