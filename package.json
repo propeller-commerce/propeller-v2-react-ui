@@ -1,6 +1,6 @@
 {
   "name": "@propeller-commerce/propeller-v2-react-ui",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/propeller-commerce/propeller-v2-react-ui.git"
@@ -43,7 +43,7 @@
   },
   "scripts": {
     "prepare": "npm run build",
-    "build": "tsup && npm run build:css",
+    "build": "npm run clean && tsup && npm run build:css",
     "build:js": "tsup",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --minify",
     "dev": "tsup --watch",
@@ -53,7 +53,7 @@
     "test:coverage": "vitest run --coverage",
     "storybook": "npm run build:css && storybook dev -p 6006",
     "build-storybook": "npm run build:css && storybook build",
-    "clean": "powershell -Command \"Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue\""
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "peerDependencies": {
     "@propeller-commerce/propeller-sdk-v2": "*",

@@ -51,7 +51,14 @@ export default defineConfig([
     format: ['esm', 'cjs'],
     dts: true,
     sourcemap: true,
-    clean: true,
+    // Deliberately not cleaning here. tsup runs these three configs as
+    // concurrent processes, so a clean in this one races the sibling configs
+    // DTS writes. The `shared` entry emits the smallest declaration and
+    // finishes first, so its .d.ts/.d.cts were what got deleted — react-ui
+    // 0.20.0 shipped with no types for /shared for exactly that reason,
+    // breaking every consumer that imports it. `npm run clean` in the build
+    // script now wipes dist once, before tsup starts.
+    clean: false,
     splitting: false,
     treeshake: true,
     // Use the automatic JSX runtime so the bundled output emits `jsx()` /

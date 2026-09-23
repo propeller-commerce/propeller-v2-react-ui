@@ -8,6 +8,24 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.20.1] - 2026-09-23
+
+### Fixed
+
+- The `/shared` entry shipped without type declarations. `tsup.config.ts`
+  builds three entries as concurrent processes and the `index` one carried
+  `clean: true`, so its clean raced the siblings DTS writes. `shared` emits the
+  smallest declaration and finishes first, which made its `.d.ts`/`.d.cts` the
+  reliable casualty — about one build in five locally, and the one that
+  produced the published 0.20.0 tarball. Consumers importing
+  `propeller-v2-react-ui/shared` then failed to type check with TS7016
+  ("Could not find a declaration file"); propeller-next hits it in five files.
+  Cleaning now happens once in the `clean` script, before tsup starts, and no
+  tsup config cleans. `clean` is also no longer PowerShell-only, so it works on
+  the Linux CI runner.
+
+  No component or API change — 0.20.0 and 0.20.1 differ only in the tarball.
+
 ## [0.20.0] - 2026-09-21
 
 ### Fixed
