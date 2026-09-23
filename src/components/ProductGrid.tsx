@@ -110,20 +110,6 @@ export interface ProductGridProps {
    */
   isLoading?: boolean;
 
-  // ── Custom card renderers (render-prop / slot) ────────────────────────────
-
-  /**
-   * Provide a custom product card renderer.
-   * Falls back to the built-in `<ProductCard>` when not set.
-   */
-  renderProductCard?: (product: Product) => any;
-
-  /**
-   * Provide a custom cluster card renderer.
-   * Falls back to the built-in `<ClusterCard>` when not set.
-   */
-  renderClusterCard?: (cluster: Cluster) => any;
-
   // ── Portal / visibility ───────────────────────────────────────────────────
 
   /**
@@ -581,30 +567,21 @@ function ProductGrid(rawProps: ProductGridProps) {
                     {props.beforeItem?.(item, idx)}
                     <div>
                       {isClusterItem(item) ? (
-                        <>
-                          {!props.renderClusterCard ? (
-                            <ClusterCardImpl
-                              cluster={item as Cluster}
-                              labels={props.clusterCardLabels}
-                              stockLabels={props.stockLabels}
-                            />
-                          ) : null}
-                        </>
-                      ) : null}
-                      {!isClusterItem(item) ? (
-                        <>
-                          {!props.renderProductCard ? (
-                            <ProductCardImpl
-                              product={item as Product}
-                              allowAddToCart={showAddToCart()}
-                              labels={props.productCardLabels}
-                              stockLabels={props.stockLabels}
-                              priceLabels={props.priceLabels}
-                              addToCartLabels={props.addToCartLabels}
-                            />
-                          ) : null}
-                        </>
-                      ) : null}
+                        <ClusterCardImpl
+                          cluster={item as Cluster}
+                          labels={props.clusterCardLabels}
+                          stockLabels={props.stockLabels}
+                        />
+                      ) : (
+                        <ProductCardImpl
+                          product={item as Product}
+                          allowAddToCart={showAddToCart()}
+                          labels={props.productCardLabels}
+                          stockLabels={props.stockLabels}
+                          priceLabels={props.priceLabels}
+                          addToCartLabels={props.addToCartLabels}
+                        />
+                      )}
                     </div>
                     {props.afterItem?.(item, idx)}
                   </React.Fragment>

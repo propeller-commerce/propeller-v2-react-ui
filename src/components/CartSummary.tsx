@@ -8,10 +8,10 @@
 import * as React from 'react';
 
 import { useState } from 'react';
-import { Cart, Contact, Customer, GraphQLClient, PurchaseRole } from '@propeller-commerce/propeller-sdk-v2';
+import { Cart, Contact, Customer, GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage, isOverAuthorizationLimit } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
@@ -191,19 +191,9 @@ function CartSummary(rawProps: CartSummaryProps) {
     }
   }
   function showRequestAuthorizationButton(): boolean {
-    if (!props.user || !('contactId' in props.user)) return false;
-    if (!props.companyId) return false;
-    if (!props.cart) return false;
-    // user has been through toPlain() in AuthContext, so SDK field names are canonical.
-    const items = props.user.purchaseAuthorizationConfigs?.items ?? [];
-    const purchaserPAC = items.find(
-      (pac) => pac.purchaseRole === PurchaseRole.PURCHASER
-        && Number(pac.company?.companyId) === Number(props.companyId)
-    );
-    if (!purchaserPAC) return false;
-    const limit = purchaserPAC.authorizationLimit ?? 0;
-    const totalGross = props.cart.total?.totalGross ?? 0;
-    return totalGross > limit;
+    // Against props.cart, not the hook's internal one — see the note at the
+    // useCart call above.
+    return isOverAuthorizationLimit(props.user, props.companyId, props.cart);
   }
 
   function showRequestQuoteButton(): boolean {

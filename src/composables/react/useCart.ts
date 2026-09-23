@@ -3,9 +3,9 @@
  */
 
 import { useState, useCallback, useMemo, useRef } from 'react';
-import { createServices, ok, err, type AnyUser, type Result } from '@propeller-commerce/propeller-v2-core-ui';
-import { CrossupsellType, PurchaseRole } from '@propeller-commerce/propeller-sdk-v2';
-import type { GraphQLClient, Cart, CartMainItem, Product, Cluster, Contact, Customer, MediaImageProductSearchInput, TransformationsInput, PurchaseAuthorizationConfig, Crossupsell, CrossupsellsQueryVariables, CrossupsellSearchInput, CartProcessResponse } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices, ok, err, isCheckoutAllowed, type AnyUser, type Result } from '@propeller-commerce/propeller-v2-core-ui';
+import { CrossupsellType } from '@propeller-commerce/propeller-sdk-v2';
+import type { GraphQLClient, Cart, CartMainItem, Product, Cluster, Contact, Customer, MediaImageProductSearchInput, TransformationsInput, Crossupsell, CrossupsellsQueryVariables, CrossupsellSearchInput, CartProcessResponse } from '@propeller-commerce/propeller-sdk-v2';
 import { initCart, type CartInitConfig } from '../shared/utils/cartInit';
 
 // The cart mutations take the media arguments that decide whether the returned
@@ -196,20 +196,13 @@ export function useCart(options: UseCartOptions): UseCartReturn {
   const [error, setError] = useState<string | null>(null);
   const notesTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const checkoutAllowed = useMemo<boolean>(() => {
-    if (!user || !('contactId' in user)) return true;
-    if (!companyId) return true;
-    if (!cart) return true;
-    const pacData = (user as Contact).purchaseAuthorizationConfigs;
-    const items: PurchaseAuthorizationConfig[] = pacData?.items ?? [];
-    const purchaserPac = items.find((pac: PurchaseAuthorizationConfig) =>
-      pac.purchaseRole === PurchaseRole.PURCHASER && pac.company?.companyId === companyId
-    );
-    if (!purchaserPac) return true;
-    const limit = purchaserPac.authorizationLimit ?? 0;
-    const totalGross = cart.total?.totalGross ?? 0;
-    return totalGross <= limit;
-  }, [user, companyId, cart]);
+  // Reads the hook's own `cart`, which is null until the consumer calls
+  // addItem/resolveCart — so a component that only renders a cart it fetched
+  // itself must pass that cart to `isCheckoutAllowed` rather than read this.
+  const checkoutAllowed = useMemo<boolean>(
+    () => isCheckoutAllowed(user, companyId, cart),
+    [user, companyId, cart]
+  );
 
   function getMinQuantity(product: Product | null | undefined): number { const min = product?.minimumQuantity; return min && min > 0 ? min : 1; }
   function getStep(product: Product | null | undefined): number { const unit = product?.unit; return unit && unit > 0 ? unit : 1; }

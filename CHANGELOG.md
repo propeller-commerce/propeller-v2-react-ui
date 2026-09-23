@@ -51,6 +51,29 @@ between minor versions; breaking changes are called out below and in
 - `AccountIconAndMenu` accepts a `linkClassName` prop for its sidebar links,
   which previously had no class escape hatch. (PWP-1005c)
 
+- The purchase-authorization rule existed in three divergent copies — `useCart`
+  compared `<=`, `CartSummary` and `CartIconAndSidebar` compared `>`, and only
+  `CartSummary` coerced `companyId` numerically, so a string company id from a
+  cookie matched in one place and not the others. All three now call
+  `isOverAuthorizationLimit` from core-ui.
+
+  This also fixes the hook failing open: `useCart.checkoutAllowed` returned
+  `true` when its own internal cart was null, which it is until the consumer
+  calls `addItem`/`resolveCart` — so an app reading it for a cart it fetched
+  itself was told an over-limit cart could check out. (PWP-988)
+
+### Removed
+
+- **Breaking:** `ProductGrid.renderProductCard` and `renderClusterCard`. Both
+  were declared in the public type but never invoked — only tested for
+  truthiness, which suppressed the default card and rendered nothing. Setting
+  either produced an empty grid. They were superseded by the compound-component
+  work that introduced `productCardComponent` / `clusterCardComponent`; the call
+  that used them was replaced then, and only the guard survived. Use
+  `productCardComponent` / `clusterCardComponent` to swap a whole card, or
+  `ProductGrid.Items.renderItem` for per-item control. No working usage was
+  possible, so nothing that functioned is lost. (PWP-985)
+
 ### Changed
 
 - `ProductDownloads.downloads` and `ProductVideos.videos` are now optional and

@@ -8,10 +8,10 @@
 import * as React from 'react';
 
 import { useState, useEffect } from 'react';
-import { Cart, CartMainItem, Contact, Customer, GraphQLClient, PurchaseAuthorizationConfig, PurchaseRole } from '@propeller-commerce/propeller-sdk-v2';
+import { Cart, CartMainItem, Contact, Customer, GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, localeForLanguage, isOverAuthorizationLimit, findPurchaserPac } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultCartBonusItemsImpl from './CartBonusItems';
 import CartItem from './CartItem';
@@ -148,19 +148,6 @@ export interface CartIconAndSidebarProps {
 
 // ── Pure helpers (module scope — created once, not per render) ──────────────────
 
-/** Finds the user's PURCHASER PAC for the active company (shared by both
- *  checkout / request-authorization button decisions). */
-function findPurchaserPAC(
-  user: Contact | Customer | undefined,
-  companyId: number | undefined
-): PurchaseAuthorizationConfig | undefined {
-  if (!user || !('contactId' in user) || !companyId) return undefined;
-  const items: PurchaseAuthorizationConfig[] =
-    (user as Contact).purchaseAuthorizationConfigs?.items ?? [];
-  return items.find(
-    (pac) => pac.purchaseRole === PurchaseRole.PURCHASER && pac.company?.companyId === companyId
-  );
-}
 
 /**
  * Header cart control: a cart icon with an item-count badge and optional
@@ -222,16 +209,15 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
   const sidebarTitle =
     props.cartSidebarTitle || props.labels?.['cartSidebarTitle'] || 'Shopping cart';
 
-  // Purchase-authorization gate (shared PAC lookup, divergent only on the
-  // limit comparison).
-  const purchaserPAC = findPurchaserPAC(props.user, props.companyId);
-  const totalGross = props.cart?.total?.totalGross ?? 0;
-  const overLimit = !!purchaserPAC && totalGross > (purchaserPAC.authorizationLimit ?? 0);
+  // Purchase-authorization gate — same predicate the cart page uses, so the
+  // header sidebar and CartSummary cannot disagree.
+  const purchaserPAC = findPurchaserPac(props.user, props.companyId);
+  const overLimit = isOverAuthorizationLimit(props.user, props.companyId, props.cart);
 
   const showCheckoutButton =
     props.cartCheckoutButton === false
       ? false
-      : !props.user || !('contactId' in props.user) || !props.companyId || !purchaserPAC
+      : !purchaserPAC
         ? true
         : !overLimit;
   const showRequestAuthorizationButton = !!purchaserPAC && overLimit;
