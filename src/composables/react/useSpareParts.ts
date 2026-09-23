@@ -110,6 +110,21 @@ export interface UseSparePartsOptions {
   /** Items per page. Defaults to 12. */
   pageSize?: number;
 
+  /**
+   * Controlled page. When provided the hook renders (and fetches) this page and
+   * `goToPage` becomes advisory - the host owns the number, typically from the
+   * URL.
+   *
+   * Every other listing input (term, textFilters, sortField, pageSize) was
+   * already an option, so its absence read as "paging is internal" and it was
+   * not: driving the hook from URL state and rendering GridPagination changed
+   * the URL but re-rendered the same first page, because the only way in was a
+   * `useEffect(() => goToPage(page))` that MachineGrid does internally and
+   * nothing documented (PWP-995b). Omit it to keep the previous uncontrolled
+   * behaviour.
+   */
+  page?: number;
+
   /** Image filter config, mirroring `useProductSearch`'s `configuration`. */
   configuration?: {
     /** The channel's anonymous user, seeded by the host. Scopes logged-out
@@ -165,7 +180,9 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
   const [childMachines, setChildMachines] = useState<SparePartsMachine[]>([]);
   const [itemsFound, setItemsFound] = useState(0);
   const [internalLoading, setInternalLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [internalPage, setInternalPage] = useState(1);
+  // Controlled when `options.page` is given, exactly like `options.parts`.
+  const currentPage = options.page ?? internalPage;
   const [totalPages, setTotalPages] = useState(1);
 
   /** Per-instance guard: only the newest fetch commits. Mirrors `useProductSearch`. */
@@ -366,7 +383,7 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
   ]);
 
   const goToPage = useCallback((page: number) => {
-    setCurrentPage((prev) => {
+    setInternalPage((prev) => {
       // `totalPages <= 1` means the count isn't known yet (e.g. still showing an
       // SSR-seeded page), so don't reject — else the first pagination click is
       // silently dropped. Mirrors `usePagination.goToPage`.

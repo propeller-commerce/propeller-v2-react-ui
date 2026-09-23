@@ -24,7 +24,7 @@ export interface MachineCardProps {
    * URL is its ancestor path (`/machines/a/b/c`), which only the host route
    * knows; the machine object carries just its own slug.
    */
-  href: string;
+  href?: string;
 
   // === Display toggles ===
 
@@ -39,7 +39,15 @@ export interface MachineCardProps {
   /** Language used to resolve the localized name/description. */
   language?: string;
 
-  /** UI label overrides. Supported key: `viewMachine`. */
+  /**
+   * UI label overrides. Key read here: `viewMachine`.
+   *
+   * `MachineGrid` passes its own `machineCardLabels` straight through to this
+   * prop and additionally reads `loading` and `noMachines` from it for its own
+   * empty/loading states, so the object a grid host supplies carries all three.
+   * This doc used to name only `viewMachine`, which left the other two in
+   * English for anyone who followed it (PWP-995d).
+   */
   labels?: Record<string, string>;
 
   // === Escape hatches ===
@@ -66,6 +74,10 @@ function getMachineImageUrl(machine: SparePartsMachine | null | undefined): stri
  */
 export default function MachineCard(props: MachineCardProps): React.JSX.Element {
   const { machine, href, language } = props;
+  // A machine with no slug in ANY language has no URL to link to. It used to be
+  // dropped from the list entirely, so a customer saw three of four machines
+  // with nothing saying why (PWP-993); render it as a plain card instead.
+  const Wrapper = href ? 'a' : 'div';
   const showImage = props.showImage ?? true;
   const showDescription = props.showDescription ?? false;
 
@@ -81,9 +93,8 @@ export default function MachineCard(props: MachineCardProps): React.JSX.Element 
     <div
       className={cn(`propeller-machine-card group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background ${props.className ?? ''}`)}
     >
-      <a
-        href={href}
-        onClick={handleClick}
+      <Wrapper
+        {...(href ? { href, onClick: handleClick } : {})}
         className="flex h-full flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         {showImage && (
@@ -139,7 +150,7 @@ export default function MachineCard(props: MachineCardProps): React.JSX.Element 
             {getLabel(props.labels, 'viewMachine', 'View')}
           </span>
         </div>
-      </a>
+      </Wrapper>
     </div>
   );
 }

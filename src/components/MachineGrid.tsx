@@ -27,7 +27,7 @@
  */
 
 import * as React from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   AttributeFilter,
   AttributeType,
@@ -120,11 +120,39 @@ export interface MachineGridProps {
   showAvailability?: boolean;
   onProductClick?: (product: Product) => void;
 
+  /**
+   * Custom card for the PARTS list, forwarded to the inner ProductGrid. Without
+   * it a product rendered with the host's custom card on a normal listing and
+   * with the stock card here, so the same product looked different depending on
+   * the page it was reached from (PWP-995c).
+   */
+  productCardComponent?: React.ComponentType<import('./ProductCard').ProductCardProps>;
+
   // ── Labels ────────────────────────────────────────────────────────────────
   paginationLabels?: Record<string, string>;
   filtersLabels?: Record<string, string>;
   toolbarLabels?: Record<string, string>;
+  /**
+   * Labels for the machine side of the grid. Keys read here: `loading` and
+   * `noMachines`. The same object is passed to each `MachineCard` as its
+   * `labels`, which reads `viewMachine` — so all three keys belong in it.
+   */
   machineCardLabels?: Record<string, string>;
+
+  /**
+   * Labels for the PARTS list, forwarded verbatim to the inner ProductGrid and
+   * the components it embeds.
+   *
+   * MachineGrid used to forward none of these and expose no way to reach them,
+   * so a translated storefront rendered "In stock", "Add" and "Search parts…"
+   * in English in the middle of its own copy. A monolingual shop never noticed
+   * (PWP-995a).
+   */
+  productCardLabels?: Record<string, string>;
+  addToCartLabels?: Record<string, string>;
+  stockLabels?: Record<string, string>;
+  priceLabels?: Record<string, string>;
+  labels?: Record<string, string>;
 
   className?: string;
 }
@@ -189,7 +217,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   });
 
   // ── Node: this machine's parts + direct children ───────────────────────────
-  const { displayParts, childMachines, isLoading: partsLoading, currentPage, totalPages, goToPage } =
+  const { displayParts, childMachines, isLoading: partsLoading, currentPage, totalPages } =
     useSpareParts({
       graphqlClient: props.graphqlClient,
       // Idle at the root (no slug).
@@ -206,6 +234,10 @@ export default function MachineGrid(rawProps: MachineGridProps) {
       sortField,
       sortOrder,
       pageSize: offset,
+      // The hook takes the controlled page directly now. It used to own its own
+      // counter, so the only way to drive it from URL state was the effect
+      // below — undiscoverable unless you read this file (PWP-995b).
+      page: listing.page,
       configuration: rawProps.configuration ?? (props.configuration as never),
       onFiltersChange: setGridFilters,
       onPriceBoundsChange: (min, max) => {
@@ -215,14 +247,6 @@ export default function MachineGrid(rawProps: MachineGridProps) {
       onItemsFoundChange: setItemsFound,
       onMachineChange: setMachine,
     });
-
-  // The parts hook owns its own page counter; feed the controlled URL page into
-  // it or pagination writes the page to the URL but never refetches (the hook
-  // stays on page 1). Mirrors ProductGrid's page sync. Also resets to 1 when a
-  // filter/sort emit sets listing.page = 1.
-  useEffect(() => {
-    goToPage(listing.page);
-  }, [listing.page, goToPage]);
 
   const machineName = machine ? getLocalizedValue(machine.name, machineLanguage) : slugToLabel(currentSlug);
 
@@ -311,17 +335,18 @@ export default function MachineGrid(rawProps: MachineGridProps) {
     [sortField, sortOrder]
   );
 
-  const childSlugHref = (child: SparePartsMachine): string | null => {
+  // `undefined` when the machine has no slug in ANY language — it genuinely has
+  // no URL, so the card renders unlinked rather than vanishing. getLocalizedValue
+  // already falls back across languages; the queries feeding it no longer narrow
+  // to one (PWP-993).
+  const childSlugHref = (child: SparePartsMachine): string | undefined => {
     const slug = getLocalizedValue(child.slug, machineLanguage);
-    if (!slug) return null;
-    return `${currentPath}/${slug}`;
+    return slug ? `${currentPath}/${slug}` : undefined;
   };
 
   // ── Root render ─────────────────────────────────────────────────────────────
   if (isRoot) {
-    const cards = rootMachines
-      .map((m) => ({ machine: m, href: childSlugHref(m) }))
-      .filter((c): c is { machine: SparePartsMachine; href: string } => c.href !== null);
+    const cards = rootMachines.map((m) => ({ machine: m, href: childSlugHref(m) }));
 
     return (
       <div className={rawProps.className}>
@@ -397,7 +422,6 @@ export default function MachineGrid(rawProps: MachineGridProps) {
         <div className="propeller-machine-children mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {childMachines.map((child) => {
             const href = childSlugHref(child);
-            if (!href) return null;
             return (
               <MachineCard
                 key={`machine-${child.id}`}
@@ -473,6 +497,12 @@ export default function MachineGrid(rawProps: MachineGridProps) {
               columns={viewMode === 'list' ? 1 : 3}
               showAvailability={rawProps.showAvailability ?? false}
               showStock={rawProps.showStock ?? true}
+              productCardComponent={rawProps.productCardComponent}
+              productCardLabels={rawProps.productCardLabels}
+              addToCartLabels={rawProps.addToCartLabels}
+              stockLabels={rawProps.stockLabels}
+              priceLabels={rawProps.priceLabels}
+              labels={rawProps.labels}
               belowName={(product: Product) => {
                 const qty = quantityBySku.get(product.sku);
                 if (!qty) return null;

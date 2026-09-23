@@ -8,6 +8,66 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.21.0] - 2026-09-23
+
+`MachineGrid` stops losing rows, and becomes usable in a translated or
+customised storefront. One project had given up on it and rebuilt the surface
+by hand (~450 lines), losing the breadcrumb, module grid and filter wiring.
+
+### Fixed
+
+- **A machine with no slug in the tree language is no longer dropped from the
+  list.** `childSlugHref` returned `null` and the card was filtered out, so a
+  customer saw three of four machines with nothing saying so — and the same
+  helper guards the child-module grid, so a module could vanish from a machine
+  the same way. Two changes: `ROOT_MACHINE_FIELDS` no longer passes
+  `(language: $language)` to `name` / `description` / `slug`, so the
+  cross-language fallback in `getLocalizedValue` has entries to fall back to;
+  and a machine with no slug in *any* language now renders as an unlinked card
+  rather than vanishing. Needs SDK ≥ 0.17.0 for the child-machine half, which
+  comes through `getMachine`. (PWP-993)
+
+  The asymmetry that made this hard to spot: the **name** falls back across
+  languages, the **slug** did not — so a half-translated tree rendered names in
+  the wrong language rather than failing, but lost whole rows when the slug was
+  the missing half.
+
+### Added
+
+- **`MachineGrid` forwards label overrides to the parts list.** It rendered its
+  parts through `ProductGrid` but forwarded none of `productCardLabels`,
+  `addToCartLabels`, `stockLabels`, `priceLabels` or `labels`, and there was no
+  way to reach them from outside — so "In stock", "Add" and "Search parts…"
+  appeared in English in the middle of translated copy. A monolingual shop
+  never noticed. (PWP-995a)
+- **`MachineGrid.productCardComponent`** — the `ProductGrid` prop of the same
+  name, forwarded. Without it a quote-only product rendered with the host's
+  custom card on a normal listing and with the stock card inside a machine, so
+  the same product looked different depending on the page it was reached from.
+  (PWP-995c)
+- **`useSpareParts({ page })`** — a controlled page, mirroring the existing
+  controlled `parts`. Every other listing input (`term`, `textFilters`,
+  `sortField`, `pageSize`) was already an option, so the absence of `page` read
+  as "paging is internal" — and it was not: driving the hook from URL state and
+  rendering `<GridPagination>` changed the URL and re-rendered the same first
+  twelve parts. The only way in was a `useEffect(() => goToPage(page))` that
+  `MachineGrid` did internally and nothing documented. `goToPage` still works
+  for uncontrolled hosts; omit `page` for the previous behaviour. (PWP-995b)
+
+### Changed
+
+- `MachineCard.href` is now optional — a machine with no URL renders as a
+  `<div>` instead of an `<a>`.
+- **`MachineGrid` drives `useSpareParts` with `page` directly** instead of the
+  internal `goToPage` effect.
+
+### Documentation
+
+- **`MachineCardProps.labels` documented one key while `MachineGrid` read
+  three.** The doc named only `viewMachine`; `MachineGrid` also reads `loading`
+  and `noMachines` off the same object, so anyone following the doc left those
+  two in English. Both sides now say so. (PWP-995d)
+
 ## [0.20.1] - 2026-09-23
 
 ### Fixed
