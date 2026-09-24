@@ -39,6 +39,12 @@ export interface ProductBulkPricesProps {
    * Defaults to 'open'.
    */
   portalMode?: string;
+  /**
+   * Whether a session exists, independent of whether `user` has loaded yet.
+   * Passed down by the parent alongside `portalMode`; closes the hydration
+   * window in which an authenticated visitor still has a null `user`.
+   */
+  isAuthenticated?: boolean;
 
   /** Authenticated user — used for semi-closed visibility. */
   user?: Contact | Customer | null;
@@ -64,7 +70,7 @@ export interface ProductBulkPricesProps {
  */
 function ProductBulkPrices(props: ProductBulkPricesProps) {
   const includeTax = !!props.includeTax;
-  const isHidden = isContentHidden(props.portalMode, props.user);
+  const isHidden = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
   function getTierQuantity(tier: ProductPrice): number | null {
     const discount = tier.discount as
       | (IDiscount & { quantityFrom?: number })

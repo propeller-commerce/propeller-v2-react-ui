@@ -13,6 +13,7 @@ const INFRA_KEYS: InfraKey[] = [
   'currency',
   'configuration',
   'portalMode',
+  'isAuthenticated',
 ];
 
 /**

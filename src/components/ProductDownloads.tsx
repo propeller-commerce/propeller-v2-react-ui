@@ -8,10 +8,8 @@ import * as React from 'react';
 import {
   PaginatedMediaDocumentResponse,
   MediaDocument,
-  LocalizedDocument,
-  LocalizedString,
 } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLanguageString, resolveLanguageEntry } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
 export interface ProductDownloadsProps {
@@ -44,15 +42,14 @@ function ProductDownloads(props: ProductDownloadsProps) {
   const items: MediaDocument[] = props.downloads?.items || [];
   const hasItems = items.length > 0;
   const lang = props.language || 'NL';
+  // Case-insensitive on purpose: the API lowercases `documents[].language`
+  // while leaving `alt[].language` as uploaded, so matching exactly gave the
+  // right label with the wrong file.
   function getDocumentUrl(doc: MediaDocument): string {
-    const docs = doc.documents || [];
-    const match = docs.find((d: LocalizedDocument) => d.language === lang);
-    return match?.originalUrl || docs?.[0]?.originalUrl || '';
+    return resolveLanguageEntry(doc.documents, lang)?.originalUrl || '';
   }
   function getDocumentName(doc: MediaDocument): string {
-    const alts = doc.alt || [];
-    const match = alts.find((a: LocalizedString) => a.language === lang);
-    return match?.value || alts?.[0]?.value || 'Download';
+    return getLanguageString(doc.alt, lang, 'Download');
   }
   return (
     <div className={cn(`propeller-product-downloads ${props.className || ''}`)}>

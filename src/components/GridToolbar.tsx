@@ -281,7 +281,7 @@ function GridToolbar(rawProps: GridToolbarProps) {
     return badges;
   }
   function isPriceSortDisabled() {
-    return isContentHidden(props.portalMode as string | undefined, props.user);
+    return isContentHidden(props.portalMode as string | undefined, props.user, props.isAuthenticated);
   }
   function getAvailabilityLabel() {
     const qty = props.minStock as number | undefined;

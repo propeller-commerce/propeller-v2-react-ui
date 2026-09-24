@@ -45,8 +45,15 @@ interface ResolveSpecEntry {
   transform?: (gridValue: NonNullable<ProductGridConfig[GridKey]>) => unknown;
 }
 
-/** Per-prop resolution spec: maps each prop key to its {@link ResolveSpecEntry}. */
-export type ResolveSpec<P> = Partial<Record<keyof P, ResolveSpecEntry>>;
+/**
+ * Per-prop resolution spec: maps each prop key to its {@link ResolveSpecEntry}.
+ *
+ * Infra keys are spec'able too, so a component can pull a provider value it
+ * only reads internally without having to publish it as its own prop.
+ */
+export type ResolveSpec<P> = Partial<
+  Record<keyof P | keyof PropellerInfra, ResolveSpecEntry>
+>;
 
 /**
  * useResolvedProps — resolves props through the two-tier precedence
@@ -56,7 +63,13 @@ export type ResolveSpec<P> = Partial<Record<keyof P, ResolveSpecEntry>>;
  * @param spec - per-key resolution rules; keys absent from the spec pass through unchanged.
  * @returns the props with each spec'd key resolved to its highest-precedence value.
  */
-export function useResolvedProps<P extends object>(rawProps: P, spec: ResolveSpec<P>): P {
+// Returns `P & Partial<PropellerInfra>`, not bare `P`: infra is resolved below
+// and returned, so narrowing to `P` hid provider-supplied values from callers
+// and forced every component to redeclare them as its own prop.
+export function useResolvedProps<P extends object>(
+  rawProps: P,
+  spec: ResolveSpec<P>
+): P & Partial<PropellerInfra> {
   const grid = useProductGridConfig();
   const infra = useInfraProps(
     rawProps as Record<string, unknown>,
@@ -100,5 +113,5 @@ export function useResolvedProps<P extends object>(rawProps: P, spec: ResolveSpe
     }
   }
 
-  return resolved as P;
+  return resolved as P & Partial<PropellerInfra>;
 }

@@ -240,6 +240,23 @@
 }
 
 /*
+ * Header triggers (account menu, company switcher).
+ *
+ * These sit in the host's header, which may be dark or light, and the
+ * component cannot know which — `text-white` broke light headers and
+ * `text-foreground` broke dark ones, so the markup inherits its colour
+ * instead. The hover tint has to follow: a fixed token would be wrong on one
+ * of the two. `currentColor` at 10% derives it from whatever the header set,
+ * so it reads correctly on both. Written here rather than as a utility class
+ * because the package's own stylesheet only ships the utilities Tailwind
+ * finds in its source, and an opacity-modified `bg-current` is not one.
+ */
+.propeller-account-menu__trigger:hover,
+.propeller-company-switcher__trigger:hover {
+  background-color: color-mix(in oklab, currentColor 10%, transparent);
+}
+
+/*
  * Rich-text description bodies — CMS/PIM HTML rendered via innerHTML.
  *
  * These four surfaces used to carry Tailwind Typography's `prose prose-slate`
@@ -344,9 +361,17 @@
  * delay lets the slide-out finish before it disappears. Keyed on the
  * `data-open` attribute the component already emits.
  */
+/*
+ * `translate` AND `transform` are both listed on purpose. Tailwind v4 emits
+ * `translate-x-*` as the `translate` property, not `transform`, so naming only
+ * `transform` here replaced the markup's `transition-transform` with a list
+ * that covered nothing the utilities animate — the panel jumped instead of
+ * sliding. `transform` stays for any consumer overriding with a transform.
+ */
 .propeller-cart-icon__sidebar[data-open='false'] {
   visibility: hidden;
   transition:
+    translate 300ms ease-in-out,
     transform 300ms ease-in-out,
     visibility 0s linear 300ms;
 }
@@ -354,6 +379,7 @@
 .propeller-cart-icon__sidebar[data-open='true'] {
   visibility: visible;
   transition:
+    translate 300ms ease-in-out,
     transform 300ms ease-in-out,
     visibility 0s linear 0s;
 }

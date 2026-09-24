@@ -11,6 +11,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Contact, Company, GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 import { useCompany } from '../composables/react/useCompany';
 import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { cn } from '../composables/shared/utils/cn';
 
 export interface CompanySwitcherProps {
   /** The contact to whom the companies are assigned. Default company is user.company, all companies are in user.companies. */
@@ -31,6 +32,9 @@ export interface CompanySwitcherProps {
   /** Translated labels keyed by the slugs used inside the component (see
    * `getLabel` calls). Missing keys fall back to the English defaults. */
   labels?: Record<string, string>;
+
+  /** Additional class name for the switcher's trigger button. */
+  triggerClassName?: string;
 }
 
 /**
@@ -118,7 +122,11 @@ function CompanySwitcher(props: CompanySwitcherProps) {
         type="button"
         aria-haspopup="listbox"
         aria-label={getLabel(props.labels, 'switchCompanyAriaLabel', 'Switch company')}
-        className="propeller-company-switcher__trigger flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors hover:bg-white/10"
+        className={cn(
+          // `text-inherit`: this sits in the host's header, which may be dark or
+          // light. See the note on AccountIconAndMenu's trigger.
+          `propeller-company-switcher__trigger flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors text-inherit${props.triggerClassName ? ' ' + props.triggerClassName : ''}`
+        )}
         onClick={(event) => toggleDropdown()}
         aria-expanded={isOpen}
       >

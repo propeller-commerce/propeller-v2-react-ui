@@ -36,6 +36,7 @@ import {
   getLocalizedValue,
 } from '@propeller-commerce/propeller-v2-core-ui';
 import { useResolvedProps, ResolveSpec } from '../composables/react/useResolvedProps';
+import type { PropellerInfra } from '../context/PropellerContext';
 import { ProductGridConfig } from '../context/ProductGridContext';
 import { cn } from '../composables/shared/utils/cn';
 
@@ -303,6 +304,7 @@ const RESOLVE_SPEC: ResolveSpec<ProductCardProps> = {
   language: { infra: 'language', default: 'NL' },
   includeTax: { infra: 'includeTax' },
   portalMode: { infra: 'portalMode' },
+  isAuthenticated: { infra: 'isAuthenticated' },
   configuration: { infra: 'configuration' },
   // Same entry ClusterCard has always had. Without it a shop priced in
   // anything but euros had no route to the cards at all: the grid resolved the
@@ -359,7 +361,8 @@ const RESOLVE_SPEC: ResolveSpec<ProductCardProps> = {
 interface ProductCardContextValue {
   product: Product;
   /** Fully resolved props (infra + grid context + explicit) — read instead of `props`. */
-  resolved: ProductCardProps;
+  /** Props after `useResolvedProps`, so provider-resolved infra survives the hop. */
+  resolved: ProductCardProps & Partial<PropellerInfra>;
   /** Derived display values, computed once at the root and read by leaves. */
   derived: {
     name: string;
@@ -418,7 +421,7 @@ function ProductCardRoot(rawProps: ProductCardProps) {
   const product = props.product;
   const isRow = props.columns === 1;
 
-  const contentHidden = isContentHidden(props.portalMode, props.user);
+  const contentHidden = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
   const showStock = !!props.showStock && !contentHidden;
   // Keep the CTA slot when hidden — it carries the log-in action instead.
   const showCta = props.allowAddToCart !== false || contentHidden;
@@ -899,6 +902,7 @@ function ProductCardPrice(props: {
         currency={resolved.currency}
         language={resolved.language}
         portalMode={resolved.portalMode}
+      isAuthenticated={resolved.isAuthenticated}
         user={resolved.user}
         showLoginPrompt={false}
       />
@@ -909,17 +913,18 @@ function ProductCardPrice(props: {
 /** Renders the embedded `AddToCart` control with all pass-through props from
  *  context, or the injected `addToCartComponent` when set.
  *
- *  Note: the default `AddToCartImpl` accepts a richer prop set (graphqlClient,
- *  configuration, etc.) than the public `AddToCartComponentProps` contract.
- *  Injected components only receive the contract surface; the extra infra
- *  props stay default-only. */
+ *  Note: the default `AddToCartImpl` accepts a richer prop set than the public
+ *  `AddToCartComponentProps` contract. Injected components receive the whole
+ *  contract surface; what stays default-only is infra (graphqlClient, user,
+ *  configuration, …), which an injected component resolves from
+ *  `<PropellerProvider>` itself. */
 function ProductCardAddToCart(props: {
   /** Override the AddToCart wrapper class. */
   className?: string;
 }) {
   const { product, resolved } = useProductCard();
   // Checked before the injected component so a host-supplied control is gated too.
-  if (isContentHidden(resolved.portalMode, resolved.user)) {
+  if (isContentHidden(resolved.portalMode, resolved.user, resolved.isAuthenticated)) {
     return (
       <LoginToOrderButton
         className={props.className}
@@ -938,9 +943,13 @@ function ProductCardAddToCart(props: {
         allowIncrDecr={resolved.allowIncrDecr}
         showModal={resolved.showModal}
         enableStockValidation={resolved.enableStockValidation}
+        onAddToCart={resolved.onAddToCart}
         afterAddToCart={resolved.afterAddToCart}
         onProceedToCheckout={resolved.onProceedToCheckout}
         onRequestQuoteClick={resolved.onRequestQuoteClick}
+        createCart={resolved.createCart}
+        onCartCreated={resolved.onCartCreated}
+        includeTax={resolved.includeTax}
         labels={resolved.addToCartLabels}
       />
     );

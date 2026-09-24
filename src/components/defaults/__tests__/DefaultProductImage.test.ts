@@ -1,20 +1,19 @@
 /**
  * Tests for the language-fallback image picker used by DefaultProductImage.
  *
- * The picker is exported indirectly through the component, but the React
- * render itself can't run under vitest's node env. We re-implement the
- * exact same priority order here to lock in the fallback contract:
- *   1. imageVariant matching target language
- *   2. originalUrl matching target language
+ * Imports the real `pickImageUrl` rather than re-implementing it. This file
+ * used to carry a copy headed "keep in sync", which meant it asserted against
+ * itself: the copy and the component could drift and the suite would stay
+ * green. The contract under test:
+ *   1. imageVariant matching target language (case-insensitive)
+ *   2. originalUrl matching target language (case-insensitive)
  *   3. any imageVariant URL
  *   4. any originalUrl
  *   5. null
- *
- * If this contract changes in DefaultProductImage.tsx, this test must
- * change with it.
  */
 
 import { describe, it, expect } from 'vitest';
+import { pickImageUrl } from '../DefaultProductImage';
 
 interface LocalizedImage {
   language?: string;
@@ -30,27 +29,6 @@ interface MediaItem {
   imageVariants?: ImageVariant[];
 }
 
-// Mirror of the implementation in DefaultProductImage.tsx — keep in sync.
-function pickImageUrl(mediaItems: MediaItem[], target: string): string | null {
-  if (!mediaItems || mediaItems.length === 0) return null;
-  for (const m of mediaItems) {
-    const match = m.imageVariants?.find((v) => v.language === target && v.url);
-    if (match?.url) return match.url;
-  }
-  for (const m of mediaItems) {
-    const match = m.images?.find((i) => i.language === target && i.originalUrl);
-    if (match?.originalUrl) return match.originalUrl;
-  }
-  for (const m of mediaItems) {
-    const first = m.imageVariants?.find((v) => v.url);
-    if (first?.url) return first.url;
-  }
-  for (const m of mediaItems) {
-    const first = m.images?.find((i) => i.originalUrl);
-    if (first?.originalUrl) return first.originalUrl;
-  }
-  return null;
-}
 
 describe('DefaultProductImage — language-aware URL picker', () => {
   it('returns null for empty media', () => {
@@ -67,6 +45,21 @@ describe('DefaultProductImage — language-aware URL picker', () => {
       },
     ];
     expect(pickImageUrl(items, 'NL')).toBe('https://cdn/img-nl.webp');
+  });
+
+  it('matches the language case-insensitively', () => {
+    // The API lowercases some media language fields; an exact compare picked
+    // the wrong image (PWP-984 / PWP-983).
+    const items: MediaItem[] = [
+      {
+        imageVariants: [
+          { language: 'en', url: 'https://cdn/img-en.webp' },
+          { language: 'nl', url: 'https://cdn/img-nl.webp' },
+        ],
+      },
+    ];
+    expect(pickImageUrl(items, 'NL')).toBe('https://cdn/img-nl.webp');
+    expect(pickImageUrl(items, 'en')).toBe('https://cdn/img-en.webp');
   });
 
   it('falls back to a localized originalUrl when no matching variant', () => {

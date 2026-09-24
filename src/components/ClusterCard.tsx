@@ -208,6 +208,7 @@ const RESOLVE_SPEC: ResolveSpec<ClusterCardProps> = {
   currency: { infra: 'currency', default: '€' },
   user: { infra: 'user', default: null },
   portalMode: { infra: 'portalMode' },
+  isAuthenticated: { infra: 'isAuthenticated' },
   columns: { grid: 'columns', default: 3 },
   showPrice: { grid: 'showPrice' },
   showStock: { grid: 'showStock' },
@@ -310,7 +311,7 @@ function ClusterCard(rawProps: ClusterCardProps) {
   }));
 
   // Folded into price/stock below so every render branch is gated.
-  const contentHidden = isContentHidden(props.portalMode, props.user);
+  const contentHidden = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
   const defaultProductInventory = contentHidden ? undefined : cluster?.defaultProduct?.inventory;
 
   const useTax = props.includeTax !== undefined ? !!props.includeTax : false;

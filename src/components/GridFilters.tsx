@@ -176,7 +176,7 @@ function GridFilters(rawProps: GridFiltersProps) {
   }
   function showAvailability() {
     if (!props.showAvailabilityFilter) return false;
-    return !isContentHidden(props.portalMode as string | undefined, props.user);
+    return !isContentHidden(props.portalMode as string | undefined, props.user, props.isAuthenticated);
   }
   function getFilterName(filter: AttributeFilter) {
     return (filter as AttributeFilter)?.attributeDescription?.name || '';

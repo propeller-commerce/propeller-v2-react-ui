@@ -8,10 +8,8 @@ import * as React from 'react';
 import {
   PaginatedMediaVideoResponse,
   MediaVideo,
-  LocalizedVideo,
-  LocalizedString,
 } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLanguageString, getLanguageUri } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
 export interface ProductVideosProps {
@@ -44,15 +42,13 @@ function ProductVideos(props: ProductVideosProps) {
   const items: MediaVideo[] = props.videos?.items || [];
   const hasItems = items.length > 0;
   const lang = props.language || 'NL';
+  // Case-insensitive: media language casing is not guaranteed to match the
+  // storefront language. Same resolver ProductDownloads uses.
   function getVideoUri(video: MediaVideo): string {
-    const vids = video.videos || [];
-    const match = vids.find((v: LocalizedVideo) => v.language === lang);
-    return match?.uri || vids?.[0]?.uri || '';
+    return getLanguageUri(video.videos, lang, '');
   }
   function getVideoTitle(video: MediaVideo): string {
-    const alts = video.alt || [];
-    const match = alts.find((a: LocalizedString) => a.language === lang);
-    return match?.value || alts?.[0]?.value || 'Video';
+    return getLanguageString(video.alt, lang, 'Video');
   }
   function isEmbeddable(uri: string): boolean {
     return uri.includes('youtube.com') || uri.includes('youtu.be') || uri.includes('vimeo.com');

@@ -1,6 +1,6 @@
 {
   "name": "@propeller-commerce/propeller-v2-react-ui",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/propeller-commerce/propeller-v2-react-ui.git"
@@ -61,7 +61,7 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@propeller-commerce/propeller-v2-core-ui": "^0.8.0",
+    "@propeller-commerce/propeller-v2-core-ui": "^0.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lodash.debounce": "^4.0.8",

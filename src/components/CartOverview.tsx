@@ -8,8 +8,9 @@
 import * as React from 'react';
 
 import { useState } from 'react';
-import { Cart, CartAddress, GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
+import { Cart, CartAddress, Contact, Customer, GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { getLabel, isOverAuthorizationLimit } from '@propeller-commerce/propeller-v2-core-ui';
+import { useInfraProps } from '../composables/react/useInfraProps';
 import { getCountryName as _getCountryName } from '@propeller-commerce/propeller-v2-core-ui';
 
 export interface CartOverviewProps {
@@ -52,13 +53,21 @@ export interface CartOverviewProps {
    * built-in COUNTRIES list is used as a fallback.
    */
   countries?: { code: string; name: string }[];
+
+  /** Logged-in user — used for the purchase-authorization check. Resolved from PropellerProvider when omitted. */
+  user?: Contact | Customer | null;
+
+  /** Active company ID — used for the purchase-authorization check. Resolved from PropellerProvider when omitted. */
+  companyId?: number;
 }
 /**
  * Final cart review panel: shows invoice/delivery addresses, payment, carrier
  * and delivery date, with optional reference, notes, terms acceptance and a
  * place-order button.
  */
-function CartOverview(props: CartOverviewProps) {
+function CartOverview(rawProps: CartOverviewProps) {
+  // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
+  const props = useInfraProps(rawProps);
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -68,6 +77,9 @@ function CartOverview(props: CartOverviewProps) {
   const showReference = props.showReference !== false;
   const showTermsAndConditions = props.showTermsAndConditions !== false;
   const showPurchaseButton = props.showPurchaseButton !== false;
+  // Same predicate CartSummary and the cart sidebar use, against props.cart —
+  // so the checkout page cannot contradict what the cart already said.
+  const overLimit = isOverAuthorizationLimit(props.user, props.companyId, props.cart);
   const invoiceAddress: CartAddress | undefined = props.cart?.invoiceAddress;
   const deliveryAddress: CartAddress | undefined = props.cart?.deliveryAddress;
   const getCountryName = (code: string) => _getCountryName(code, props.countries);
@@ -260,7 +272,20 @@ function CartOverview(props: CartOverviewProps) {
             </label>
           </div>
         ) : null}
-        {showPurchaseButton ? (
+        {/* An over-limit purchaser reaching /checkout directly used to get the
+            full flow and an ungated "Place order" — the backend refused it with
+            CART_INVALID_STATUS_ERROR, so it ended in an error rather than the
+            authorization flow the cart page offers. */}
+        {showPurchaseButton && overLimit ? (
+          <p className="propeller-cart-overview__authorization-required text-sm text-muted-foreground mt-2">
+            {getLabel(
+              props.labels,
+              'authorizationRequired',
+              'This order exceeds your authorization limit. Request authorization from the cart to continue.'
+            )}
+          </p>
+        ) : null}
+        {showPurchaseButton && !overLimit ? (
           <button
             type="button"
             className="propeller-cart-overview__submit flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground text-center py-3 rounded-container hover:bg-primary/80 transition font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed mt-2"

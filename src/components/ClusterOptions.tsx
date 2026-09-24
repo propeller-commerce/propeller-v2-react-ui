@@ -173,7 +173,7 @@ function ClusterOptions(rawProps: ClusterOptionsProps) {
     const language = props.language as string | undefined;
     const options = props.options || [];
     const sel = selectedProductIds;
-    const hidePrices = isContentHidden(props.portalMode, props.user);
+    const hidePrices = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
     return options
       .filter((option: ClusterOption) => option.hidden !== YesNo.Y)
       .map((option: ClusterOption) => {

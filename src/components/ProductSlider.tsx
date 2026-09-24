@@ -281,7 +281,7 @@ function ProductSlider(rawProps: ProductSliderProps) {
   function showAddToCart(): boolean {
     const allow = (props.allowAddToCart as boolean) !== false;
     // Anonymous visitors only — a signed-in user keeps add-to-cart.
-    return !isContentHidden(props.portalMode as string | undefined, props.user) && allow;
+    return !isContentHidden(props.portalMode as string | undefined, props.user, props.isAuthenticated) && allow;
   }
 
 

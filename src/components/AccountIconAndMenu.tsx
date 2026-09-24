@@ -407,7 +407,12 @@ function AccountIconAndMenu(rawProps: AccountIconAndMenuProps) {
             onClick={(event) => handleIconClick()}
             aria-label={getLabel(props.labels, 'accountLabel', 'Account')}
             data-open={menuOpen ? 'true' : 'false'}
-            className={cn(`propeller-account-menu__trigger inline-flex items-center gap-2 px-3 py-2 rounded-control text-sm font-medium transition-colors text-foreground hover:bg-surface-hover${props.iconClassName ? ' ' + props.iconClassName : ''}`)}
+            // `text-inherit`, not a theme token: this trigger sits in the host's
+            // header, which may be dark or light, and the component cannot know
+            // which. Hardcoding `text-white` broke light headers and
+            // `text-foreground` broke dark ones; inheriting is correct on both.
+            // `iconClassName` still overrides.
+            className={cn(`propeller-account-menu__trigger inline-flex items-center gap-2 px-3 py-2 rounded-control text-sm font-medium transition-colors text-inherit${props.iconClassName ? ' ' + props.iconClassName : ''}`)}
           >
             <svg
               fill="none"

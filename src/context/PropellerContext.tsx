@@ -45,6 +45,14 @@ export interface PropellerDeps {
 export interface PropellerScope {
   /** The authenticated user, or `null` when browsing anonymously. */
   user: Contact | Customer | null;
+  /**
+   * Whether a session exists, independent of whether `user` has loaded yet.
+   * Hosts paint from a cached hint before the profile arrives, so `user` is
+   * null for an authenticated visitor for the first frames; without this,
+   * semi-closed surfaces flash their logged-out state. Optional — omitting it
+   * keeps the previous behaviour.
+   */
+  isAuthenticated?: boolean;
   /** Active company ID for the current session; `undefined` for non-company users. */
   companyId: number | undefined;
   /** Active language code (e.g. `'NL'`). */

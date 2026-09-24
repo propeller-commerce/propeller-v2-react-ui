@@ -2,7 +2,7 @@
  * useCart (React) — Cart management hook.
  */
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createServices, ok, err, isCheckoutAllowed, type AnyUser, type Result } from '@propeller-commerce/propeller-v2-core-ui';
 import { CrossupsellType } from '@propeller-commerce/propeller-sdk-v2';
 import type { GraphQLClient, Cart, CartMainItem, Product, Cluster, Contact, Customer, MediaImageProductSearchInput, TransformationsInput, Crossupsell, CrossupsellsQueryVariables, CrossupsellSearchInput, CartProcessResponse } from '@propeller-commerce/propeller-sdk-v2';
@@ -91,7 +91,11 @@ export interface UseCartReturn {
   loading: boolean;
   /** Last error message, or `null`. */
   error: string | null;
-  /** `false` when a B2B purchaser's authorization limit is exceeded by the cart total. */
+  /**
+   * `false` when a B2B purchaser's authorization limit is exceeded by the cart
+   * total, and while a seeded `cartId` is still being hydrated — it fails
+   * closed, so gating a checkout button on it holds rather than opens.
+   */
   checkoutAllowed: boolean;
   /** Resolves an existing cart or creates one via the shared `initCart` flow. */
   resolveCart: () => Promise<Cart>;
@@ -196,13 +200,45 @@ export function useCart(options: UseCartOptions): UseCartReturn {
   const [error, setError] = useState<string | null>(null);
   const notesTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  // Reads the hook's own `cart`, which is null until the consumer calls
-  // addItem/resolveCart — so a component that only renders a cart it fetched
-  // itself must pass that cart to `isCheckoutAllowed` rather than read this.
-  const checkoutAllowed = useMemo<boolean>(
-    () => isCheckoutAllowed(user, companyId, cart),
-    [user, companyId, cart]
-  );
+  // Hydrate a cart the hook was only given the id of. `checkoutAllowed` has to
+  // weigh a total against the purchaser's limit, and with no cart it answered
+  // "allowed" — so an app gating its own checkout button on this let an
+  // over-limit purchaser through while the library's own UI showed "Request
+  // authorization". Consumers that never mutate the cart (a cart page that
+  // fetched it itself) hit exactly that path.
+  useEffect(() => {
+    if (!graphqlClient || !cartId || cart) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const fetched = await createServices(graphqlClient).cart.getCart({
+          cartId,
+          imageSearchFilters: imageSearchFilters(),
+          imageVariantFilters: imageVariantFilters(),
+          language,
+        });
+        if (!cancelled && fetched) setCart(fetched as Cart);
+      } catch {
+        // Leave `cart` null — `checkoutAllowed` then reports `false`, which
+        // holds checkout rather than opening it on a failed read.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [graphqlClient, cartId, cart, language, imageSearchFilters, imageVariantFilters]);
+
+  // `resolvedCompanyId`, not the raw option: a contact acting for their own
+  // company passes no companyId, and the PAC is keyed by company — matching on
+  // the raw value found no config and reported every cart as within limit.
+  //
+  // Fails CLOSED while the cart is still loading: with nothing to weigh, the
+  // honest answer is "not yet", and an app that gates a button on this should
+  // hold it rather than open it.
+  const checkoutAllowed = useMemo<boolean>(() => {
+    if (cartId && !cart) return false;
+    return isCheckoutAllowed(user, resolvedCompanyId, cart);
+  }, [user, resolvedCompanyId, cart, cartId]);
 
   function getMinQuantity(product: Product | null | undefined): number { const min = product?.minimumQuantity; return min && min > 0 ? min : 1; }
   function getStep(product: Product | null | undefined): number { const unit = product?.unit; return unit && unit > 0 ? unit : 1; }

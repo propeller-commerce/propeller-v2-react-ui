@@ -8,6 +8,47 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.22.0] - 2026-09-24
+
+### Fixed
+
+- **Media language is matched case-insensitively.** The API lowercases
+  `documents[].language` while leaving `alt[].language` as uploaded, so
+  `ProductDownloads` matched the label but never the file and served
+  `documents[0]` — the Dutch PDF under an English label. `ProductVideos` had
+  the identical comparison and worked only by data luck. Also fixed in
+  `useProductSearch.filterByLanguage`, where a case mismatch dropped **every**
+  product from the grid, and in `DefaultProductImage`. (PWP-984)
+- **`checkoutAllowed` is usable, and fails closed.** It read the raw `companyId`
+  option rather than the resolved one, so a contact acting for their own company
+  matched no authorization config and every cart reported as within limit; and it
+  evaluated its own cart state, which stays null when the consumer only seeds a
+  `cartId`. The hook now hydrates a seeded cart, and reports `false` while that
+  is in flight rather than `true`. (PWP-988)
+- **The place-order button is gated on the authorization limit.** An over-limit
+  purchaser opening checkout directly got an ungated button and a backend
+  rejection; `CartOverview` now shows an `authorizationRequired` message
+  instead, using the same predicate as the cart summary. (PWP-988)
+- **Semi-closed surfaces no longer flash their logged-out state** for a signed-in
+  visitor while the profile loads. Every `isContentHidden` call site passes the
+  provider’s `isAuthenticated` (core-ui 0.9.0+). (PWP-989)
+- **The cart sidebar slides again.** The overflow fix named only `transform` in
+  its transition, but Tailwind v4 emits `translate-x-*` as the `translate`
+  property, so the panel jumped. (PWP-1002)
+- **Header triggers inherit their colour.** `AccountIconAndMenu` and
+  `CompanySwitcher` hardcoded `text-white`, which broke light headers;
+  `text-foreground` then broke dark ones. Both now use `text-inherit`, with the
+  hover tint derived from `currentColor`. (PWP-1005)
+
+### Added
+
+- `CompanySwitcher` accepts `triggerClassName`; it had no class prop at all.
+- `ProductInfo` accepts `cartId`, `createCart` and `onCartCreated`, and forwards
+  them to both the injected and the default add-to-cart. It declared none of
+  them, so the PDP’s add-to-cart always failed for a visitor without a cart.
+  `ProductCard` forwards the same to an injected component. (PWP-986)
+- `CartOverview` resolves `user` and `companyId` from `PropellerProvider`.
+
 ## [0.21.0] - 2026-09-23
 
 `MachineGrid` stops losing rows, and becomes usable in a translated or

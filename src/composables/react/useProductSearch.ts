@@ -214,10 +214,14 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
 
   function filterByLanguage(products: (Product | Cluster)[], lang: string): (Product | Cluster)[] {
     if (!lang) return products;
+    // Case-insensitive: PIM language casing is not guaranteed to match the
+    // storefront's. An exact compare drops EVERY product from the grid when the
+    // two disagree — a blank listing rather than a blank field.
+    const target = lang.toUpperCase();
     return products.filter((p) => {
       const names = (p as Product).names || (p as Cluster).names || [];
       if (!names || names.length === 0) return true;
-      return names.some((n: { language?: string }) => n.language === lang);
+      return names.some((n: { language?: string }) => (n.language || '').toUpperCase() === target);
     });
   }
 

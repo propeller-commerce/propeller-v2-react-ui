@@ -10,6 +10,7 @@ import * as React from 'react';
 import { useEffect } from 'react';
 import {
   GraphQLClient,
+  Cart,
   Product,
   ProductService,
   LocalizedString,
@@ -20,6 +21,7 @@ import {
 } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductInfo } from '../composables/react/useProductInfo';
 import { useInfraProps } from '../composables/react/useInfraProps';
+import type { PropellerInfra } from '../context/PropellerContext';
 import { isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
 import LoginToOrderButton from './LoginToOrderButton';
 import DefaultProductPriceImpl from './ProductPrice';
@@ -137,6 +139,23 @@ export interface ProductInfoProps {
    */
   textLabels?: string[];
 
+  // ───── Add-to-cart ─────
+  // Without these the PDP's add-to-cart had no cart to add to: with no cartId
+  // and createCart defaulting to false, every add failed outright for a
+  // visitor who did not already have a cart.
+
+  /** Cart to add into. Omit and pass `createCart` to start one on first add. */
+  cartId?: string;
+
+  /** If true a new cart is created when no `cartId` is available. */
+  createCart?: boolean;
+
+  /**
+   * Called when a new cart is created, so the host can persist `cart.cartId`.
+   * WARNING: without it a new cart is created on every add.
+   */
+  onCartCreated?: (cart: Cart) => void;
+
   // ───── Extension API ─────
   // New PDP shell. Passing ANY new `show*` prop or any injection component
   // opts INTO the new shell layout. When none is passed, ProductInfo
@@ -206,7 +225,8 @@ export interface ProductInfoProps {
 
 interface ProductInfoContextValue {
   product: Product;
-  resolved: ProductInfoProps;
+  /** Props after `useInfraProps`, so provider-resolved infra survives the hop. */
+  resolved: ProductInfoProps & Partial<PropellerInfra>;
   derived: {
     name: string;
     sku: string;
@@ -528,6 +548,7 @@ function ProductInfoPrice(props: { className?: string } = {}) {
       currency={derived.currency}
       taxZone={derived.taxZone}
       portalMode={derived.portalMode}
+      isAuthenticated={resolved.isAuthenticated}
       user={derived.user}
       labels={derived.labels}
       className={props.className}
@@ -539,7 +560,7 @@ function ProductInfoPrice(props: { className?: string } = {}) {
 function ProductInfoStock(props: { className?: string } = {}) {
   const { product, resolved, derived } = useProductInfoContext();
   if (!product.inventory) return null;
-  if (isContentHidden(derived.portalMode, resolved.user)) return null;
+  if (isContentHidden(derived.portalMode, resolved.user, resolved.isAuthenticated)) return null;
   const Injected = resolved.stockComponent;
   if (Injected) {
     return (
@@ -567,7 +588,7 @@ function ProductInfoStock(props: { className?: string } = {}) {
 function ProductInfoAddToCart(props: { className?: string } = {}) {
   const { product, resolved, derived } = useProductInfoContext();
   // Checked before the injected component so a host-supplied control is gated too.
-  if (isContentHidden(derived.portalMode, resolved.user)) {
+  if (isContentHidden(derived.portalMode, resolved.user, resolved.isAuthenticated)) {
     return (
       <LoginToOrderButton
         className={props.className}
@@ -578,7 +599,17 @@ function ProductInfoAddToCart(props: { className?: string } = {}) {
   }
   const Injected = resolved.addToCartComponent;
   if (Injected) {
-    return <Injected product={product} labels={derived.labels} className={props.className} />;
+    return (
+      <Injected
+        product={product}
+        cartId={resolved.cartId}
+        createCart={resolved.createCart}
+        onCartCreated={resolved.onCartCreated}
+        includeTax={derived.useTax}
+        labels={derived.labels}
+        className={props.className}
+      />
+    );
   }
   return (
     <DefaultAddToCartImpl
@@ -586,6 +617,9 @@ function ProductInfoAddToCart(props: { className?: string } = {}) {
       user={derived.user}
       currency={derived.currency}
       product={product}
+      cartId={resolved.cartId}
+      createCart={resolved.createCart}
+      onCartCreated={resolved.onCartCreated}
       configuration={resolved.configuration}
       companyId={(resolved as { companyId?: number }).companyId}
       includeTax={derived.useTax}
@@ -640,6 +674,7 @@ function ProductInfoBulkPrices(props: { className?: string } = {}) {
       bulkPrices={product.bulkPrices}
       includeTax={derived.useTax}
       portalMode={derived.portalMode}
+      isAuthenticated={resolved.isAuthenticated}
       user={derived.user}
       taxZone={derived.taxZone}
       currency={derived.currency}
