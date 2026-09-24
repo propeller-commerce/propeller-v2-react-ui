@@ -88,6 +88,16 @@ export interface MachineGridProps {
   // ── Tree ─────────────────────────────────────────────────────────────────
   /** Language the machine tree is authored in (usually EN). Defaults to `'EN'`. */
   machineLanguage?: string;
+  /**
+   * Other languages the tree may be authored in, tried in order when a slug
+   * does not resolve in `machineLanguage`.
+   *
+   * A slug resolves only in its own language, so a half-translated tree lists a
+   * machine by its NL slug and then cannot open it with `language: 'EN'`. Pass
+   * the shop's locales here; `machineLanguage` and the storefront `language`
+   * are always tried first (PWP-993).
+   */
+  machineLanguages?: string[];
 
   // ── Controlled listing (parts) ───────────────────────────────────────────
   listing: MachineListingState;
@@ -133,9 +143,19 @@ export interface MachineGridProps {
   filtersLabels?: Record<string, string>;
   toolbarLabels?: Record<string, string>;
   /**
-   * Labels for the machine side of the grid. Keys read here: `loading` and
-   * `noMachines`. The same object is passed to each `MachineCard` as its
-   * `labels`, which reads `viewMachine` — so all three keys belong in it.
+   * Labels for the machine side of the grid.
+   *
+   * Keys read here: `loading`, `noMachines`, `machineNotFound`,
+   * `quantityInMachine` and `searchParts`. The same object is passed to each
+   * `MachineCard` as its `labels`, which reads `viewMachine` — so all six keys
+   * belong in it.
+   *
+   * `quantityInMachine` and `searchParts` used to be read from `toolbarLabels`,
+   * which is forwarded verbatim to `GridToolbar`: a shop that translated its
+   * toolbar dictionary properly still got "Qty in machine" and "Search parts…"
+   * in English, because those keys belong to no toolbar (PWP-995a). They are
+   * still read from `toolbarLabels` as a fallback so existing hosts keep
+   * working.
    */
   machineCardLabels?: Record<string, string>;
 
@@ -217,7 +237,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   });
 
   // ── Node: this machine's parts + direct children ───────────────────────────
-  const { displayParts, childMachines, isLoading: partsLoading, currentPage, totalPages } =
+  const { displayParts, childMachines, isLoading: partsLoading, currentPage, totalPages, notFound } =
     useSpareParts({
       graphqlClient: props.graphqlClient,
       // Idle at the root (no slug).
@@ -225,6 +245,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
       term: term || undefined,
       language,
       machineLanguage,
+      machineLanguages: rawProps.machineLanguages,
       taxZone: props.taxZone,
       user: props.user,
       companyId: props.companyId,
@@ -249,6 +270,13 @@ export default function MachineGrid(rawProps: MachineGridProps) {
     });
 
   const machineName = machine ? getLocalizedValue(machine.name, machineLanguage) : slugToLabel(currentSlug);
+
+  /**
+   * The grid's own strings. `machineCardLabels` first, then `toolbarLabels` for
+   * hosts that already put them there, then English (PWP-995a).
+   */
+  const machineLabel = (key: string, fallback: string): string =>
+    rawProps.machineCardLabels?.[key] ?? rawProps.toolbarLabels?.[key] ?? fallback;
 
   const partProducts = useMemo(
     () =>
@@ -381,6 +409,29 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   // ── Node render ─────────────────────────────────────────────────────────────
   const hasParts = itemsFound > 0 || partProducts.length > 0;
 
+  // The slug resolved in no language we know of. Without this the page rendered
+  // a title title-cased from the URL above an empty parts list and no error, so
+  // a machine that could not be opened looked exactly like one with no parts
+  // (PWP-993).
+  if (notFound && !partsLoading) {
+    return (
+      <div className={rawProps.className}>
+        <nav aria-label="Breadcrumb" className="propeller-breadcrumbs mb-6">
+          <ol className="flex flex-wrap items-center gap-2 text-sm text-foreground-subtle">
+            <li>
+              <a href={basePath} className="hover:text-primary">
+                {rawProps.rootTitle ?? 'Machines'}
+              </a>
+            </li>
+          </ol>
+        </nav>
+        <p className="py-12 text-center text-foreground-subtle">
+          {machineLabel('machineNotFound', 'This machine could not be found.')}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={rawProps.className}>
       {/* Breadcrumbs from the URL segments — leaf name from the fetched machine,
@@ -458,7 +509,9 @@ export default function MachineGrid(rawProps: MachineGridProps) {
               key={term}
               defaultValue={term}
               onSubmit={submitSearch}
-              labels={rawProps.toolbarLabels}
+              searchLabel={machineLabel('searchParts', 'Search parts…')}
+              searchAriaLabel={machineLabel('searchParts', 'Search parts')}
+              buttonLabel={getLabel(rawProps.toolbarLabels, 'search', 'Search')}
             />
 
             <div className="sticky top-[80px] z-30 mb-2 bg-background/95 py-2 backdrop-blur lg:static lg:bg-transparent lg:py-0">
@@ -508,7 +561,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
                 if (!qty) return null;
                 return (
                   <span className="propeller-spare-part__quantity text-sm text-foreground-subtle">
-                    {(rawProps.toolbarLabels?.quantityInMachine ?? 'Qty in machine')}: {qty}
+                    {machineLabel('quantityInMachine', 'Qty in machine')}: {qty}
                   </span>
                 );
               }}
@@ -536,7 +589,9 @@ export default function MachineGrid(rawProps: MachineGridProps) {
 function MachinePartsSearch(props: {
   defaultValue: string;
   onSubmit: (value: string) => void;
-  labels?: Record<string, string>;
+  searchLabel: string;
+  searchAriaLabel: string;
+  buttonLabel: string;
 }) {
   const ref = React.useRef<HTMLInputElement>(null);
   const submit = () => props.onSubmit(ref.current?.value ?? '');
@@ -549,8 +604,8 @@ function MachinePartsSearch(props: {
         onKeyDown={(e) => {
           if (e.key === 'Enter') submit();
         }}
-        placeholder={props.labels?.searchParts ?? 'Search parts…'}
-        aria-label={props.labels?.searchParts ?? 'Search parts'}
+        placeholder={props.searchLabel}
+        aria-label={props.searchAriaLabel}
         className="w-full rounded border border-border bg-background px-3 py-2"
       />
       <button
@@ -558,7 +613,7 @@ function MachinePartsSearch(props: {
         onClick={submit}
         className="rounded bg-primary px-4 py-2 text-primary-foreground"
       >
-        {props.labels?.search ?? 'Search'}
+        {props.buttonLabel}
       </button>
     </div>
   );

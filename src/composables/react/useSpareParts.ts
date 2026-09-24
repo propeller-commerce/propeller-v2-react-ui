@@ -36,6 +36,10 @@ import {
   type FilterAvailableAttributeInput,
 } from '@propeller-commerce/propeller-sdk-v2';
 import { resolveListingUserId } from '../shared/utils/listingUserId';
+import {
+  machineLanguageCandidates,
+  resolveMachineAcrossLanguages,
+} from '../shared/utils/machineLanguage';
 
 /**
  * Module-level in-flight set — dedups identical concurrent fetches, which
@@ -82,6 +86,16 @@ export interface UseSparePartsOptions {
    * parts list need different languages. Set this when they diverge.
    */
   machineLanguage?: string;
+
+  /**
+   * Extra languages to try when the slug does not resolve in `machineLanguage`.
+   *
+   * A slug resolves only in the language it was authored in, so a tree that is
+   * only half-translated has machines reachable by an NL slug but not an EN
+   * one. `machineLanguage` and `language` are always tried first; list the
+   * shop's other locales here to cover the rest. Order is the try order.
+   */
+  machineLanguages?: string[];
 
   /** Tax zone for price calculation. */
   taxZone?: string;
@@ -163,6 +177,14 @@ export interface UseSparePartsReturn {
   fetchParts: () => Promise<void>;
   /** Navigate to a page. */
   goToPage: (page: number) => void;
+  /**
+   * The slug resolved in none of the candidate languages.
+   *
+   * Distinct from "resolved but has no parts": this node does not exist, and a
+   * host that renders the usual empty listing for it shows a page built
+   * entirely from the URL. Always `false` in controlled mode.
+   */
+  notFound: boolean;
 }
 
 /**
@@ -181,6 +203,9 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
   const [itemsFound, setItemsFound] = useState(0);
   const [internalLoading, setInternalLoading] = useState(false);
   const [internalPage, setInternalPage] = useState(1);
+  const [notFound, setNotFound] = useState(false);
+  /** Content key so a new-but-equal array doesn't retrigger the fetch. */
+  const machineLanguagesKey = (options.machineLanguages ?? []).join(',');
   // Controlled when `options.page` is given, exactly like `options.parts`.
   const currentPage = options.page ?? internalPage;
   const [totalPages, setTotalPages] = useState(1);
@@ -276,18 +301,45 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
         isSearchable: true,
       };
 
-      const machine = await service.getMachine({
-        slug: options.slug,
-        // The machine tree's language, NOT the parts' — see `machineLanguage`.
-        language: options.machineLanguage ?? options.language,
-        sparePartsMachineProductSearchInput,
-        filterAvailableAttributeInput,
-        priceCalculateProductInput,
-        imageSearchFilters: options.configuration?.imageSearchFiltersGrid as never,
-        imageVariantFilters: options.configuration?.imageVariantFiltersMedium as never,
-      });
+      // A slug resolves only in the language it was authored in, so try the
+      // tree language first and fall back through the shop's other languages.
+      // Without this a machine listed by its NL slug in an EN tree opened an
+      // empty page — the PWP-993 row was restored but its contents were not.
+      const resolved = await resolveMachineAcrossLanguages(
+        machineLanguageCandidates(
+          options.machineLanguage,
+          options.language,
+          options.machineLanguages
+        ),
+        (language) =>
+          service.getMachine({
+            slug: options.slug,
+            // The machine tree's language, NOT the parts' — see `machineLanguage`.
+            language,
+            sparePartsMachineProductSearchInput,
+            filterAvailableAttributeInput,
+            priceCalculateProductInput,
+            imageSearchFilters: options.configuration?.imageSearchFiltersGrid as never,
+            imageVariantFilters: options.configuration?.imageVariantFiltersMedium as never,
+          })
+      );
 
       if (thisId !== fetchIdRef.current) return;
+
+      // Exhausted every language: the slug exists in none of them. Say so —
+      // rendering an empty parts list under a title derived from the slug is
+      // what made this invisible in the first place.
+      if (!resolved) {
+        setNotFound(true);
+        setInternalParts([]);
+        setChildMachines([]);
+        setItemsFound(0);
+        options.onItemsFoundChange?.(0);
+        setTotalPages(1);
+        return;
+      }
+      setNotFound(false);
+      const machine = resolved.machine;
 
       const partsResponse = machine?.sparePartProducts as SparePartsResponse | undefined;
       const items = (partsResponse?.items ?? []) as SparePart[];
@@ -342,6 +394,7 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
     options.term,
     options.language,
     options.machineLanguage,
+    machineLanguagesKey,
     options.taxZone,
     options.companyId,
     options.textFilters,
@@ -370,6 +423,7 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
     options.term,
     options.language,
     options.machineLanguage,
+    machineLanguagesKey,
     options.companyId,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     JSON.stringify(options.textFilters ?? []),
@@ -401,5 +455,6 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
     totalPages,
     fetchParts,
     goToPage,
+    notFound: !isControlled && notFound,
   };
 }

@@ -8,6 +8,43 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.23.0] - 2026-09-24
+
+### Fixed
+
+- **A machine listed in one language could not be opened.** 0.21.0 stopped the
+  listing from narrowing to a single language, so an NL-only installation
+  appears in an EN tree and is linked by its NL slug — but `machine(slug:)`
+  resolves a slug **only** in the language it was authored in, so following
+  that link asked for `machine(slug: "<NL slug>", language: "EN")` and got
+  `SPARE_PARTS_MACHINE_NOT_FOUND_ERROR`. The page then showed a title derived
+  from the slug, no parts and no error: the bug moved one click deeper instead
+  of going away. `useSpareParts` now tries the tree language, then the
+  storefront language, then any locales given in the new `machineLanguages`
+  option, and upper-cases each (the API matches case exactly — `nl` misses
+  where `NL` hits). A slug that resolves in none of them sets the new
+  `notFound` flag, and `MachineGrid` renders "This machine could not be found."
+  instead of an empty listing. A fully-translated shop still costs exactly one
+  request, and a non-"not found" failure is never retried or reported as a
+  missing machine. (PWP-993)
+
+- **"Qty in machine" and "Search parts…" stayed English in a translated shop.**
+  Both were read from `toolbarLabels`, which is forwarded verbatim to
+  `GridToolbar` — so they belonged to no toolbar dictionary, and a shop that
+  translated its `GridToolbar` keys properly still got English. They now come
+  from `machineCardLabels` (the grid's own label bag, alongside `loading`,
+  `noMachines` and the new `machineNotFound`), falling back to `toolbarLabels`
+  so hosts that already set them keep working. (PWP-995a)
+
+### Added
+
+- `MachineGrid.machineLanguages` / `useSpareParts.machineLanguages` — the
+  locales to try when a machine slug does not resolve in the tree language.
+- `useSpareParts().notFound` — the slug resolved in none of the candidate
+  languages, as distinct from "resolved but has no parts".
+- `machineCardLabels.machineNotFound` — copy for that state.
+
+
 ## [0.22.0] - 2026-09-24
 
 ### Fixed
