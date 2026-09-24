@@ -68,11 +68,19 @@ export function machineLanguageCandidates(
  */
 export async function resolveMachineAcrossLanguages<T>(
   candidates: string[],
-  fetchOne: (language: string) => Promise<T>
+  fetchOne: (language: string) => Promise<T | null | undefined>
 ): Promise<{ machine: T; language: string } | null> {
   for (const language of candidates) {
     try {
-      return { machine: await fetchOne(language), language };
+      const machine = await fetchOne(language);
+      // A null counts as "not found in this language" and must keep the loop
+      // going. The API answers a wrong-language slug with a PARTIAL response —
+      // `machine: null` alongside SPARE_PARTS_MACHINE_NOT_FOUND_ERROR — and the
+      // SDK's `runOperation` returns that data rather than throwing unless the
+      // client sets `throwOnPartialErrors`, which no boilerplate does. Treating
+      // the null as a hit made the first candidate always win, so the fallback
+      // never ran and `notFound` was never set (PWP-993, round three).
+      if (machine !== null && machine !== undefined) return { machine, language };
     } catch (error) {
       if (!isMachineNotFound(error)) throw error;
     }

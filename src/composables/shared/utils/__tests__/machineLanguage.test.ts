@@ -91,6 +91,24 @@ describe('resolveMachineAcrossLanguages', () => {
     expect(fetchOne).toHaveBeenCalledTimes(2);
   });
 
+  // The API does not always THROW its "not found". For a wrong-language slug it
+  // answers with a partial response — `machine: null` plus the error — and the
+  // SDK's `runOperation` returns that rather than throwing unless the client
+  // opts into `throwOnPartialErrors`. No boilerplate does, so in production
+  // "not found" arrives here as a null return, not as a rejection.
+  it('treats a null machine as not-found and tries the next language', async () => {
+    const fetchOne = vi.fn(async (language: string) => (language === 'NL' ? { id: '1' } : null));
+    const result = await resolveMachineAcrossLanguages(['EN', 'NL'], fetchOne);
+    expect(result).toEqual({ machine: { id: '1' }, language: 'NL' });
+    expect(fetchOne).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns null when every language answers with a null machine', async () => {
+    const fetchOne = vi.fn(async () => null);
+    expect(await resolveMachineAcrossLanguages(['EN', 'NL'], fetchOne)).toBeNull();
+    expect(fetchOne).toHaveBeenCalledTimes(2);
+  });
+
   it('rethrows anything that is not a missing machine, without retrying', async () => {
     const boom = new Error('network down');
     const fetchOne = vi.fn(async () => {

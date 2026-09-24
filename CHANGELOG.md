@@ -8,6 +8,23 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.23.1] - 2026-09-24
+
+### Fixed
+
+- **The language fallback never ran, so a machine listed in one language still
+  opened empty.** 0.23.0 added the fallback but only advanced it on a *thrown*
+  error. The API answers a wrong-language slug with a **partial** response —
+  `machine: null` alongside `SPARE_PARTS_MACHINE_NOT_FOUND_ERROR` — and the
+  SDK's `runOperation` returns that data rather than throwing unless the client
+  opts into `throwOnPartialErrors`, which no boilerplate does. So `getMachine`
+  resolved to `null`, the first candidate language was accepted as a hit, the
+  remaining languages were never tried and `notFound` was never set: one
+  request in the tree language per page, and the same empty listing as before.
+  A `null` machine now counts as "not found in this language" and the loop
+  continues, so the fallback reaches the language the slug was authored in and
+  a slug that resolves nowhere sets `notFound`. (PWP-993)
+
 ## [0.23.0] - 2026-09-24
 
 ### Fixed
