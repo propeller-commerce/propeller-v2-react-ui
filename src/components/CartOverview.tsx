@@ -54,6 +54,9 @@ export interface CartOverviewProps {
    */
   countries?: { code: string; name: string }[];
 
+  /** Maps a lowercased payment-method code to its display name. Falls back to the raw value. */
+  paymethodLabels?: Record<string, string>;
+
   /** Logged-in user — used for the purchase-authorization check. Resolved from PropellerProvider when omitted. */
   user?: Contact | Customer | null;
 
@@ -83,7 +86,10 @@ function CartOverview(rawProps: CartOverviewProps) {
   const invoiceAddress: CartAddress | undefined = props.cart?.invoiceAddress;
   const deliveryAddress: CartAddress | undefined = props.cart?.deliveryAddress;
   const getCountryName = (code: string) => _getCountryName(code, props.countries);
-  const paymentMethod = props.cart?.paymentData?.method || '';
+  const rawPaymentMethod = props.cart?.paymentData?.method || '';
+  const paymentMethod = rawPaymentMethod
+    ? (props.paymethodLabels?.[rawPaymentMethod.toLowerCase()] || rawPaymentMethod)
+    : '';
   const carrierName = props.cart?.postageData?.carrier || '';
   function requestDate(): string {
     const date = props.cart?.postageData?.requestDate;

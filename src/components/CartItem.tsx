@@ -986,6 +986,8 @@ function CartItemDelete(props: { className?: string } = {}) {
       className={props.className ?? 'propeller-cart-item__delete h-8 w-8 p-0 ml-auto inline-flex items-center justify-center rounded-control text-foreground-subtle hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50'}
       onClick={() => handlers.onDelete()}
       disabled={state.deleting}
+      aria-label={getLabel(resolved.labels, 'deleteLabel', 'Remove item')}
+      title={getLabel(resolved.labels, 'deleteLabel', 'Remove item')}
     >
       {state.deleting ? (
         <div className="w-4 h-4 border-2 border-foreground-subtle border-t-transparent rounded-full animate-spin" />

@@ -8,6 +8,28 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.25.0] - 2026-09-25
+
+### Added
+
+- `CartOverviewProps.paymethodLabels` — maps a lowercased payment-method code
+  to its display name, the same contract `CartPaymethods` and `OrderSummary`
+  already use.
+
+### Fixed
+
+- **The checkout review step printed the raw payment-method code** (e.g.
+  "Betaling: ON_ACCOUNT") while the step before it showed the method's name for
+  the same selection. `CartOverview` had no way to map the stored code, so it
+  was the one place in checkout where the enum leaked to the customer. Pass
+  `paymethodLabels` to resolve it; it still falls back to the raw value.
+  (PWP-1028)
+
+- **The cart line's delete button had no accessible name.** It is icon-only,
+  with no `aria-label`, `title` or visually-hidden text, so assistive
+  technology announced it as just "button". It now carries both, via a
+  `deleteLabel` label key. (PWP-1030)
+
 ## [0.24.0] - 2026-09-25
 
 ### Added
