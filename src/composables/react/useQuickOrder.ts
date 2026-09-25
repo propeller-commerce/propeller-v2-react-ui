@@ -48,9 +48,9 @@ export interface QuickOrderMatch {
   name: string;
   /** The product SKU/code (canonical, from the API). */
   sku: string;
-  /** Net (excl. VAT) unit price. */
+  /** Unit price incl. VAT. */
   netPrice: number;
-  /** Gross (incl. VAT) unit price. */
+  /** Unit price excl. VAT. */
   grossPrice: number;
   /** Minimum order quantity (defaults to 1). */
   minQuantity: number;

@@ -8,6 +8,29 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.24.0] - 2026-09-25
+
+### Added
+
+- `QuickOrderProps.includeTax` and the `colPriceInclVat` label key.
+
+### Fixed
+
+- **QuickOrder showed tax-inclusive prices under an "excl. VAT" header, and
+  ignored the shop's price toggle.** The rows read `price.net`, which the API
+  defines as the price *including* tax, while the column said excl. VAT — so a
+  line read 21 % high against the same product on the PDP or in the cart. The
+  component now takes `includeTax` (resolved from `<PropellerProvider>` like
+  every other price-bearing component), picks `price.gross` or `price.net` to
+  match, and labels the column accordingly. (PWP-1027)
+
+- **The authorization-request detail mixed tax bases in one row.** The unit
+  price came from `totalSum` (excl. VAT) and the line total from `totalSumNet`
+  (incl. VAT), so 1 × € 478,55 showed a € 579,05 total and the lines did not sum
+  to the "Total excl. VAT" figure printed directly below them. Both cells are
+  now excl. VAT, matching that totals block, and the column headers say so.
+  (PWP-1029)
+
 ## [0.23.1] - 2026-09-24
 
 ### Fixed

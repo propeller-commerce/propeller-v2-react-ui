@@ -39,7 +39,10 @@ interface Row {
   productId: number | null;
   clusterId?: number;
   name: string;
+  /** Unit price incl. VAT. */
   netPrice: number;
+  /** Unit price excl. VAT. */
+  grossPrice: number;
   /** Editable quantity. */
   quantity: number;
   /** Minimum order quantity for the resolved product. */
@@ -62,6 +65,7 @@ function blankRow(): Row {
     productId: null,
     name: '',
     netPrice: 0,
+    grossPrice: 0,
     quantity: 1,
     minQuantity: 1,
     matches: [],
@@ -111,6 +115,8 @@ export interface QuickOrderProps {
   };
   /** Tax zone for price calculation. Defaults to `'NL'`. */
   taxZone?: string;
+  /** Show tax-inclusive prices. Resolves from `<PropellerProvider>`. */
+  includeTax?: boolean;
   /** Orderlist (contract) ids to scope the catalogue by. */
   orderlistIds?: number[];
   /** Set `false` to ignore `orderlistIds`. Defaults to true when ids are given. */
@@ -165,6 +171,7 @@ export interface QuickOrderProps {
     colCode?: string;
     colName?: string;
     colPrice?: string;
+    colPriceInclVat?: string;
     colQuantity?: string;
     colTotal?: string;
     addRow?: string;
@@ -210,6 +217,8 @@ function QuickOrderInner(props: QuickOrderProps) {
     props.formatPrice ? props.formatPrice(n) : formatPriceHelper(n, { symbol: currency, locale: localeForLanguage(props.language) });
   const L = (key: keyof NonNullable<QuickOrderProps['labels']>, fallback: string) =>
     getLabel(labels, key, fallback);
+  const rowPrice = (r: { netPrice: number; grossPrice: number }) =>
+    props.includeTax ? r.netPrice : r.grossPrice;
 
   const { submitting, searchProducts, submit } = useQuickOrder({
     graphqlClient,
@@ -242,7 +251,7 @@ function QuickOrderInner(props: QuickOrderProps) {
   const onCodeInput = useCallback(
     (key: string, value: string) => {
       // Typing invalidates any prior resolution for this row.
-      patchRow(key, { code: value, productId: null, name: '', netPrice: 0, searched: false });
+      patchRow(key, { code: value, productId: null, name: '', netPrice: 0, grossPrice: 0, searched: false });
       setNotice(null);
       const timers = searchTimers.current;
       if (timers[key]) clearTimeout(timers[key]);
@@ -267,7 +276,7 @@ function QuickOrderInner(props: QuickOrderProps) {
       const dup = rows.some((r) => r.key !== key && r.productId && r.code === match.sku);
       if (dup) {
         setNotice(L('alreadyInList', 'Product is already in the list'));
-        patchRow(key, { code: '', matches: [], productId: null, name: '', netPrice: 0, searched: false });
+        patchRow(key, { code: '', matches: [], productId: null, name: '', netPrice: 0, grossPrice: 0, searched: false });
         return;
       }
       patchRow(key, {
@@ -276,6 +285,7 @@ function QuickOrderInner(props: QuickOrderProps) {
         clusterId: match.clusterId,
         name: match.name,
         netPrice: match.netPrice,
+        grossPrice: match.grossPrice,
         quantity: match.minQuantity,
         minQuantity: match.minQuantity,
         matches: [],
@@ -352,6 +362,7 @@ function QuickOrderInner(props: QuickOrderProps) {
             clusterId: exact.clusterId,
             name: exact.name,
             netPrice: exact.netPrice,
+            grossPrice: exact.grossPrice,
             quantity: Math.max(exact.minQuantity, line.quantity),
             minQuantity: exact.minQuantity,
           });
@@ -443,7 +454,11 @@ function QuickOrderInner(props: QuickOrderProps) {
           <div className="hidden md:grid grid-cols-12 gap-2 px-2 pb-2 text-xs font-medium text-muted-foreground border-b border-border">
             <div className="col-span-3">{L('colCode', 'Article no. / SKU')}</div>
             <div className="col-span-3">{L('colName', 'Product name')}</div>
-            <div className="col-span-2">{L('colPrice', 'excl. VAT')}</div>
+            <div className="col-span-2">
+              {props.includeTax
+                ? L('colPriceInclVat', 'incl. VAT')
+                : L('colPrice', 'excl. VAT')}
+            </div>
             <div className="col-span-1">{L('colQuantity', 'Qty')}</div>
             <div className="col-span-2 text-right">{L('colTotal', 'Total')}</div>
             <div className="col-span-1" />
@@ -511,7 +526,7 @@ function QuickOrderInner(props: QuickOrderProps) {
                 <div className="col-span-3 md:col-span-2">
                   <input
                     type="text"
-                    value={r.productId ? displayPrice(r.netPrice) : ''}
+                    value={r.productId ? displayPrice(rowPrice(r)) : ''}
                     disabled
                     className="w-full rounded border border-input bg-muted/40 px-2 py-1.5 text-sm text-muted-foreground"
                   />
@@ -535,7 +550,7 @@ function QuickOrderInner(props: QuickOrderProps) {
 
                 {/* Line total */}
                 <div className="col-span-9 md:col-span-2 text-right text-sm text-foreground whitespace-nowrap">
-                  {r.productId ? displayPrice(r.netPrice * r.quantity) : ''}
+                  {r.productId ? displayPrice(rowPrice(r) * r.quantity) : ''}
                 </div>
 
                 {/* Remove */}

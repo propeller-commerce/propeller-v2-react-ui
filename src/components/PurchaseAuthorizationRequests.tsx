@@ -316,10 +316,10 @@ function PurchaseAuthorizationRequests(rawProps: PurchaseAuthorizationRequestsPr
                                   {getLabel(props.labels, 'itemQty', 'Qty')}
                                 </th>
                                 <th className="text-right px-3 py-2 font-medium text-muted-foreground">
-                                  {getLabel(props.labels, 'itemUnitPrice', 'Unit price')}
+                                  {getLabel(props.labels, 'itemUnitPrice', 'Unit price excl. VAT')}
                                 </th>
                                 <th className="text-right px-3 py-2 font-medium text-muted-foreground">
-                                  {getLabel(props.labels, 'itemTotal', 'Total')}
+                                  {getLabel(props.labels, 'itemTotal', 'Total excl. VAT')}
                                 </th>
                               </tr>
                             </thead>
@@ -336,7 +336,7 @@ function PurchaseAuthorizationRequests(rawProps: PurchaseAuthorizationRequestsPr
                                     )}
                                   </td>
                                   <td className="px-3 py-2 text-right font-medium">
-                                    {formatPrice(item.totalSumNet ?? 0)}
+                                    {formatPrice(item.totalSum ?? 0)}
                                   </td>
                                 </tr>
                               ))}
