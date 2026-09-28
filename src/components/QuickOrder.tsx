@@ -179,6 +179,7 @@ export interface QuickOrderProps {
     adding?: string;
     noResults?: string;
     alreadyInList?: string;
+    priceOnRequest?: string;
     noItems?: string;
     missingCodes?: string;
     remove?: string;
@@ -279,6 +280,13 @@ function QuickOrderInner(props: QuickOrderProps) {
         patchRow(key, { code: '', matches: [], productId: null, name: '', netPrice: 0, grossPrice: 0, searched: false });
         return;
       }
+      // Quoted prices are excluded from quick order — the row has nowhere to
+      // show a price and the line would submit at 0.
+      if (match.priceOnRequest) {
+        setNotice(L('priceOnRequest', 'Price on request — order this product from its page'));
+        patchRow(key, { code: '', matches: [], productId: null, name: '', netPrice: 0, grossPrice: 0, searched: false });
+        return;
+      }
       patchRow(key, {
         code: match.sku,
         productId: match.productId,
@@ -354,6 +362,12 @@ function QuickOrderInner(props: QuickOrderProps) {
             continue;
           }
           if (resolved.some((r) => r.productId === exact.productId)) continue; // dedup
+          // A quoted price cannot be bulk-ordered; report it like a miss rather
+          // than adding a line priced at 0.
+          if (exact.priceOnRequest) {
+            notFound.push(line.code);
+            continue;
+          }
           const row = blankRow();
           resolved.push({
             ...row,

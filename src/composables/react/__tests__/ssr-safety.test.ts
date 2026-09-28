@@ -49,6 +49,7 @@ describe('React hooks — module-evaluation SSR safety', () => {
     ['useInfraProps', () => import('../useInfraProps')],
     ['useMenu', () => import('../useMenu')],
     ['useOrders', () => import('../useOrders')],
+    ['usePriceRequest', () => import('../usePriceRequest')],
     ['useProductBundles', () => import('../useProductBundles')],
     ['useProductInfo', () => import('../useProductInfo')],
     ['useMachines', () => import('../useMachines')],

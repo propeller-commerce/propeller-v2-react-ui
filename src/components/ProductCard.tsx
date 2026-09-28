@@ -39,6 +39,7 @@ import { useResolvedProps, ResolveSpec } from '../composables/react/useResolvedP
 import type { PropellerInfra } from '../context/PropellerContext';
 import { ProductGridConfig } from '../context/ProductGridContext';
 import { cn } from '../composables/shared/utils/cn';
+import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
 
 // ── Public types ────────────────────────────────────────────────────────────
 
@@ -875,6 +876,23 @@ function ProductCardPrice(props: {
   className?: string;
 }) {
   const { product, derived, resolved } = useProductCard();
+  const onRequest = isPriceOnRequest(product);
+  // A price-on-request product still carries a (usually zero) price object, so
+  // the label has to render before the `!product.price` bail-out.
+  if (onRequest) {
+    return (
+      <div className={props.className ?? 'propeller-product-card__price'}>
+        <ProductPriceDisplay
+          priceOnRequest
+          labels={resolved.priceLabels}
+          portalMode={resolved.portalMode}
+          isAuthenticated={resolved.isAuthenticated}
+          user={resolved.user}
+          showLoginPrompt={false}
+        />
+      </div>
+    );
+  }
   if (!product?.price) return null;
   // The injected price wins over the default. The injected
   // component receives the contract's PriceComponentProps; the default

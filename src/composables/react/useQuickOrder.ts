@@ -35,6 +35,7 @@ import type {
 import type { AnyUser } from '@propeller-commerce/propeller-v2-core-ui';
 import { initCart } from '../shared/utils/cartInit';
 import { resolveListingUserId } from '../shared/utils/listingUserId';
+import { isPriceOnRequest } from '../shared/utils/priceOnRequest';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,8 @@ export interface QuickOrderMatch {
   minQuantity: number;
   /** Thumbnail URL, if any. */
   imageUrl: string;
+  /** Price is quoted on request — not orderable through a bulk flow. */
+  priceOnRequest: boolean;
 }
 
 /** One line a caller submits to be added to the cart. */
@@ -161,6 +164,7 @@ function toMatch(item: Product | Cluster, language?: string): QuickOrderMatch {
     grossPrice,
     minQuantity,
     imageUrl,
+    priceOnRequest: isPriceOnRequest(item),
   };
 }
 

@@ -15,6 +15,7 @@ import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-co
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
 
 export interface SearchBarResult {
   /** Unique identifier */
@@ -39,6 +40,8 @@ export interface SearchBarResult {
   url?: string;
   /** Whether this is a cluster (vs product) */
   isCluster?: boolean;
+  /** Price is quoted on request — the row shows a label instead of an amount. */
+  priceOnRequest?: boolean;
 }
 
 export interface SearchBarProps {
@@ -220,6 +223,7 @@ function mapToSearchBarResult(
     imageUrl: displayItem?.media?.images?.items?.[0]?.imageVariants?.[0]?.url || '',
     url,
     isCluster,
+    priceOnRequest: isPriceOnRequest(item),
   };
 }
 
@@ -452,6 +456,10 @@ function SearchBar(rawProps: SearchBarProps) {
                     </div>
                     {props.renderPrice ? (
                       props.renderPrice(result)
+                    ) : props.showPrice !== false && result.priceOnRequest ? (
+                      <div className="propeller-search-bar__result-price text-sm text-foreground flex-shrink-0 text-right">
+                        {getLabel(props.priceLabels, 'priceOnRequest', 'Price on request')}
+                      </div>
                     ) : props.showPrice !== false && result.price !== undefined && result.price !== null ? (
                       <div className="propeller-search-bar__result-price text-sm font-semibold text-foreground flex-shrink-0 text-right">
                         <span className="propeller-search-bar__result-price-value">{formatItemPrice(leadingPrice(result))}</span>

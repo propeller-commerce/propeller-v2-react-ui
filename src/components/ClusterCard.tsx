@@ -28,6 +28,7 @@ import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { useResolvedProps, ResolveSpec } from '../composables/react/useResolvedProps';
 import { ProductGridConfig } from '../context/ProductGridContext';
 import { cn } from '../composables/shared/utils/cn';
+import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
 
 export interface ClusterCardProps {
   // === Core ===
@@ -247,6 +248,7 @@ interface ClusterCardContextValue {
     defaultProductInventory: ProductInventory | undefined;
     clusterPrice: string;
     priceObj: ProductPrice | undefined;
+    priceOnRequest: boolean;
     useTax: boolean;
     isRow: boolean;
     language: string;
@@ -315,6 +317,8 @@ function ClusterCard(rawProps: ClusterCardProps) {
   const defaultProductInventory = contentHidden ? undefined : cluster?.defaultProduct?.inventory;
 
   const useTax = props.includeTax !== undefined ? !!props.includeTax : false;
+  // A cluster follows its default product: that is the price the card shows.
+  const priceOnRequest = isPriceOnRequest(cluster);
   const priceObj = contentHidden ? undefined : cluster?.defaultProduct?.price;
   const priceValue = useTax ? priceObj?.net : priceObj?.gross;
   const clusterPrice =
@@ -357,6 +361,7 @@ function ClusterCard(rawProps: ClusterCardProps) {
       defaultProductInventory,
       clusterPrice,
       priceObj,
+      priceOnRequest,
       useTax,
       isRow,
       language,
@@ -416,7 +421,7 @@ function ClusterCard(rawProps: ClusterCardProps) {
           <div className="propeller-cluster-card__footer w-full md:w-auto flex flex-col gap-2 md:flex-row md:items-center md:gap-3 px-4 py-2 md:py-0 border-t md:border-t-0 border-border-subtle">
             <div className="propeller-cluster-card__footer-meta flex items-center justify-between gap-3 md:contents">
               {props.showStock && defaultProductInventory ? <ClusterCardStock /> : null}
-              {props.showPrice !== false && priceObj ? <ClusterCardPrice /> : null}
+              {props.showPrice !== false && (priceObj || priceOnRequest) ? <ClusterCardPrice /> : null}
             </div>
             <div className="propeller-cluster-card__cta w-full md:w-auto md:flex-shrink-0 md:ml-auto">
               <ClusterCardViewClusterLink />
@@ -436,17 +441,17 @@ function ClusterCard(rawProps: ClusterCardProps) {
             {textLabelValues.length > 0 ? <ClusterCardTextLabels /> : null}
             {props.showManufacturer && manufacturer ? <ClusterCardManufacturer /> : null}
             {props.showShortDescription && shortDescription ? <ClusterCardShortDescription /> : null}
-            {props.showPrice !== false && priceObj ? (
+            {props.showPrice !== false && (priceObj || priceOnRequest) ? (
               <div className="mt-auto hidden md:block">
                 <ClusterCardPrice />
               </div>
             ) : null}
           </div>
           {((props.showStock && defaultProductInventory) ||
-            (props.showPrice !== false && priceObj)) ? (
+            (props.showPrice !== false && (priceObj || priceOnRequest))) ? (
             <div className="propeller-cluster-card__footer-meta flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3 pt-1 sm:px-4 md:hidden">
               {props.showStock && defaultProductInventory ? <ClusterCardStock /> : null}
-              {props.showPrice !== false && priceObj ? <ClusterCardPrice /> : null}
+              {props.showPrice !== false && (priceObj || priceOnRequest) ? <ClusterCardPrice /> : null}
             </div>
           ) : null}
           <div className="propeller-cluster-card__cta px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
@@ -761,6 +766,15 @@ function ClusterCardPrice(props: {
   className?: string;
 }) {
   const { derived, resolved } = useClusterCard();
+  if (derived.priceOnRequest) {
+    return (
+      <div className={props.className ?? 'propeller-cluster-card__price'}>
+        <span className="propeller-cluster-card__price-on-request text-sm text-foreground">
+          {getLabel(resolved.labels, 'priceOnRequest', 'Price on request')}
+        </span>
+      </div>
+    );
+  }
   if (!derived.priceObj) return null;
   const InjectedPrice = resolved.priceComponent;
   if (InjectedPrice) {

@@ -120,6 +120,23 @@ export {
   type UseQuickOrderOptions,
   type UseQuickOrderReturn,
 } from './composables/react/useQuickOrder';
+
+export {
+  usePriceRequest,
+  PRICE_REQUEST_STORAGE_KEY,
+  type UsePriceRequestOptions,
+  type UsePriceRequestReturn,
+} from './composables/react/usePriceRequest';
+
+export {
+  addItem as addPriceRequestItem,
+  removeItem as removePriceRequestItem,
+  setItemQuantity as setPriceRequestItemQuantity,
+  containsItem as priceRequestContains,
+  type PriceRequestItem,
+} from './composables/shared/utils/priceRequestList';
+
+export { isPriceOnRequest } from './composables/shared/utils/priceOnRequest';
 export {
   useSpareParts,
   type UseSparePartsOptions,
@@ -222,6 +239,14 @@ export { default as OrderActions, type OrderActionsProps } from './components/Or
 export { default as OrderBonusItems, type OrderBonusItemsProps } from './components/OrderBonusItems';
 export { default as OrderItemCard, type OrderItemCardProps } from './components/OrderItemCard';
 export { default as OrderList, type OrderListProps } from './components/OrderList';
+export {
+  default as PriceRequestList,
+} from './components/PriceRequestList';
+export type { PriceRequestListProps } from './components/PriceRequestList';
+export {
+  default as RequestPriceButton,
+} from './components/RequestPriceButton';
+export type { RequestPriceButtonProps } from './components/RequestPriceButton';
 export {
   default as QuickOrder,
   type QuickOrderProps,

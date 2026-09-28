@@ -8,6 +8,50 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.26.0] - 2026-09-28
+
+### Added
+
+- **Price-on-request is now a first-class state.** A product whose
+  `priceData.display` is `ON_REQUEST` carries no price the customer may be
+  quoted, but `price.gross`/`price.net` are still populated — almost always
+  with 0 — so every surface that rendered them unguarded showed a real-looking
+  "€ 0,00" beside a working add-to-cart button. `isPriceOnRequest()` (exported)
+  detects it, resolving a cluster through its default product, and
+  `ProductPrice`, `ProductCard`, `ClusterCard` and `SearchBar` render a
+  translatable `priceOnRequest` label instead of an amount.
+
+- **`RequestPriceButton` + `usePriceRequest` + `PriceRequestList`** — the
+  quote funnel these products need. The button replaces add-to-cart on the PDP;
+  the list is a parallel basket in `localStorage`, backed by
+  `useSyncExternalStore` so the server snapshot is empty and hydration matches;
+  the component renders it as an editable SKU/quantity table with one comment
+  field. Deliberately NOT the cart: a quoted product cannot be paid for, and
+  mixing the two would put an unpriced line into a payable order.
+
+  There is no SDK mutation for this, so delivery is the host's, supplied as
+  `onSubmit`. Without it the list still works and `submit` reports the omission
+  rather than reporting a success that never left the browser.
+
+- `ProductInfoProps.onRequestPrice` / `priceRequestAdded`, and
+  `QuickOrderMatch.priceOnRequest`.
+
+### Changed
+
+- **`ProductPriceProps.price` is now optional.** It is unread when
+  `priceOnRequest` renders in its place, and a card for such a product may
+  carry no price object at all. Existing callers are unaffected.
+
+- **The PDP gates add-to-cart in the WordPress plugin's order**: `orderable`
+  first, then the display mode. A non-orderable product gets neither control, a
+  quoted one gets the request button, and an anonymous visitor gets the log-in
+  action rather than a list they cannot be quoted from.
+
+- **Quick order excludes quoted products.** A bulk upload reports the code as
+  unresolved instead of adding a line priced at 0; picking one from the
+  typeahead clears the row with a notice. Matches the plugin, which drops them
+  from quick-order search results server-side.
+
 ## [0.25.0] - 2026-09-25
 
 ### Added

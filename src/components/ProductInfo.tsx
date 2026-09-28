@@ -18,12 +18,15 @@ import {
   Customer,
   OrderlistService,
   Orderlist,
+  YesNo,
 } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductInfo } from '../composables/react/useProductInfo';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import type { PropellerInfra } from '../context/PropellerContext';
 import { isContentHidden } from '@propeller-commerce/propeller-v2-core-ui';
 import LoginToOrderButton from './LoginToOrderButton';
+import RequestPriceButton from './RequestPriceButton';
+import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
 import DefaultProductPriceImpl from './ProductPrice';
 import DefaultItemStockImpl from './ItemStock';
 import DefaultAddToCartImpl from './AddToCart';
@@ -207,6 +210,12 @@ export interface ProductInfoProps {
    * add-to-cart in a semi-closed portal. The host owns navigation.
    */
   onLoginClick?: () => void;
+
+  /** Adds a quoted-price product to the price-request list. */
+  onRequestPrice?: (product: Product) => void;
+
+  /** True once this product is on the price-request list. */
+  priceRequestAdded?: boolean;
 
   beforeContent?: (product: Product) => React.ReactNode;
   afterContent?: (product: Product) => React.ReactNode;
@@ -594,6 +603,24 @@ function ProductInfoAddToCart(props: { className?: string } = {}) {
         className={props.className}
         labels={derived.labels}
         onLoginClick={resolved.onLoginClick}
+      />
+    );
+  }
+  // Orderable first, then the display mode: a non-orderable product gets
+  // neither control, and a quoted price replaces add-to-cart rather than
+  // joining it — an unpriced line must never reach checkout.
+  if (product?.orderable === YesNo.N) return null;
+  if (isPriceOnRequest(product)) {
+    return (
+      <RequestPriceButton
+        className={props.className}
+        labels={derived.labels}
+        isAuthenticated={resolved.isAuthenticated}
+        onLoginClick={resolved.onLoginClick}
+        added={resolved.priceRequestAdded}
+        onRequestPrice={
+          resolved.onRequestPrice ? () => resolved.onRequestPrice!(product) : undefined
+        }
       />
     );
   }

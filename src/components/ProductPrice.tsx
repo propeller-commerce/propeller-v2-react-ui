@@ -21,9 +21,10 @@ export interface ProductPriceProps {
 
   /**
    * ProductPrice object from the product.
-   * Obtain from `product.price`.
+   * Obtain from `product.price`. Omitted only when `priceOnRequest` renders in
+   * its place.
    */
-  price: ProductPrice;
+  price?: ProductPrice;
 
   /** Currency symbol to display. Defaults to '€'. */
   currency?: string;
@@ -62,8 +63,16 @@ export interface ProductPriceProps {
   selectedOptionProducts?: Product[];
 
   /**
+   * Render the price-on-request label instead of an amount.
+   * Derive with `isPriceOnRequest(product)` — `price.gross`/`net` are still
+   * populated (usually 0) for these products, so an unguarded render shows a
+   * real-looking € 0,00.
+   */
+  priceOnRequest?: boolean;
+
+  /**
    * Override any UI string.
-   * Available keys: inclTax, exclTax, loginToSeePrices
+   * Available keys: inclTax, exclTax, loginToSeePrices, priceOnRequest
    */
   labels?: Record<string, string>;
 
@@ -147,7 +156,12 @@ function ProductPriceDisplay(props: ProductPriceProps) {
           {getLabel(props.labels, 'loginToSeePrices', 'Log in to see prices')}
         </p>
       ) : null}
-      {!isHidden() && !!getLeadingPrice() ? (
+      {!isHidden() && props.priceOnRequest ? (
+        <p className="propeller-product-price__on-request text-sm text-foreground">
+          {getLabel(props.labels, 'priceOnRequest', 'Price on request')}
+        </p>
+      ) : null}
+      {!isHidden() && !props.priceOnRequest && !!getLeadingPrice() ? (
         <div className="propeller-product-price__content flex flex-col gap-0.5">
           <div className="propeller-product-price__primary flex items-baseline gap-2">
             <span
