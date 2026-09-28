@@ -289,6 +289,12 @@ function AddToCart(rawProps: AddToCartProps) {
   // to 1 then overwritten in useEffect — the set-state-in-effect anti-pattern
   // caused an extra render on every mount).
   const [quantity, setQuantity] = useState<number>(() => getMinQuantity(props.product));
+  // What the field shows while typing. The committed quantity stays a number;
+  // this holds the in-between states a number cannot represent — empty, or a
+  // value below the minimum on the way to a larger one. Guarding setQuantity on
+  // `val >= min` alone left the old value stuck in the box: with a minimum of 2,
+  // backspacing to empty or typing "1" was simply ignored.
+  const [quantityDraft, setQuantityDraft] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string>(() => '');
   const [toastType, setToastType] = useState<string>(() => '');
   const [toastVisible, setToastVisible] = useState<boolean>(() => false);
@@ -317,15 +323,44 @@ function AddToCart(rawProps: AddToCartProps) {
   function dismissToast(): void {
     setToastVisible(false);
   }
+  /** Round to the nearest valid quantity: at least `min`, on the `min + n*step` grid. */
+  function snapQuantity(value: number): number {
+    const min = getMinQuantity(props.product);
+    const step = getStep(props.product);
+    if (value <= min) return min;
+    return Math.round((value - min) / step) * step + min;
+  }
   function increment(): void {
-    setQuantity(quantity + getStep(props.product));
+    setQuantityDraft(null);
+    // Snap first: incrementing an off-grid quantity would otherwise keep it
+    // off-grid forever. Only a quantity already on the grid moves a full step.
+    const snapped = snapQuantity(quantity);
+    setQuantity(snapped === quantity ? quantity + getStep(props.product) : snapped);
   }
   function decrement(): void {
     const min = getMinQuantity(props.product);
     const step = getStep(props.product);
+    setQuantityDraft(null);
+    const snapped = snapQuantity(quantity);
+    if (snapped !== quantity) { setQuantity(snapped); return; }
     if (quantity - step >= min) {
       setQuantity(quantity - step);
     }
+  }
+
+  /** Accept any keystroke; commit only what is valid, and snap on blur. */
+  function handleQuantityInput(raw: string): void {
+    setQuantityDraft(raw);
+    const val = parseInt(raw, 10);
+    if (!isNaN(val) && val >= getMinQuantity(props.product)) {
+      setQuantity(snapQuantity(val));
+    }
+  }
+  /** Leaving the field resolves whatever is in it to a valid quantity. */
+  function handleQuantityBlur(): void {
+    const val = parseInt(quantityDraft ?? '', 10);
+    setQuantity(isNaN(val) ? getMinQuantity(props.product) : snapQuantity(val));
+    setQuantityDraft(null);
   }
   function getModalImageUrl(): string {
     if (addedCartItem) {
@@ -504,15 +539,9 @@ function AddToCart(rawProps: AddToCartProps) {
               className="propeller-add-to-cart__quantity flex-1 md:flex-none md:w-12 text-center text-sm bg-transparent border-none focus:ring-0 focus:outline-none h-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               min={getMinQuantity(props.product)}
               step={getStep(props.product)}
-              value={quantity}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                const min = getMinQuantity(props.product);
-                const step = getStep(props.product);
-                if (!isNaN(val) && val >= min) {
-                  setQuantity(Math.round((val - min) / step) * step + min);
-                }
-              }}
+              value={quantityDraft ?? quantity}
+              onChange={(e) => handleQuantityInput(e.target.value)}
+              onBlur={handleQuantityBlur}
             />
             <button
               type="button"
@@ -531,15 +560,9 @@ function AddToCart(rawProps: AddToCartProps) {
             className="propeller-add-to-cart__quantity w-full md:w-16 h-10 text-center text-sm border border-input rounded-control focus:ring-2 focus:ring-secondary focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             min={getMinQuantity(props.product)}
             step={getStep(props.product)}
-            value={quantity}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              const min = getMinQuantity(props.product);
-              const step = getStep(props.product);
-              if (!isNaN(val) && val >= min) {
-                setQuantity(Math.round((val - min) / step) * step + min);
-              }
-            }}
+            value={quantityDraft ?? quantity}
+            onChange={(e) => handleQuantityInput(e.target.value)}
+            onBlur={handleQuantityBlur}
           />
         ) : null}
         <button

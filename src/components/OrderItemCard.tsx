@@ -92,6 +92,49 @@ export interface OrderItemCardProps {
 // `[0]` is the catalog's default-language entry, so on any other storefront
 // these printed the wrong-language name and — the part that actually breaks —
 // emitted a default-language SLUG into the item's link.
+/**
+ * Warn, in development only, when a prop this component needs to be CORRECT was
+ * omitted.
+ *
+ * Both are optional, so `tsc` stays green and nothing fails — the page simply
+ * renders a name in the wrong language, or a link that drops the locale prefix
+ * and sends an `/en/…` visitor to the default-language page. That surfaces two
+ * clicks later as a mystery, not at the call site.
+ *
+ * Called during render rather than from an effect, because this component is
+ * `@rsc-safe` and ships from the hook-free `/pure` entry. Each message is
+ * emitted once per process so a re-render cannot flood the console.
+ */
+const warnedOnce = new Set<string>();
+
+function warnOnce(key: string, message: string): void {
+  if (warnedOnce.has(key)) return;
+  warnedOnce.add(key);
+  // eslint-disable-next-line no-console
+  console.warn(message);
+}
+
+function warnMissingProps(props: OrderItemCardProps): void {
+  if (process.env.NODE_ENV === 'production') return;
+  if (!props.language) {
+    warnOnce(
+      'language',
+      '[OrderItemCard] No `language` prop: product names resolve in the default ' +
+        'catalogue language, whatever page they are on. This component reads no context ' +
+        '(it ships from the RSC-safe /pure entry), so the host must pass it.'
+    );
+  }
+  const linkable = props.titleLinkable !== undefined ? props.titleLinkable : true;
+  if (linkable && !props.configuration?.urls) {
+    warnOnce(
+      'urls',
+      '[OrderItemCard] Title is linkable but no `configuration.urls` was passed: links ' +
+        'fall back to a literal /product/:id/:slug and lose the locale prefix. Pass the ' +
+        'url builders from the host, or set titleLinkable={false}.'
+    );
+  }
+}
+
 function getProductName(orderItem: OrderItem, language?: string): string {
   return (
     getLocalizedValue(orderItem?.product?.names, language, '') ||
@@ -143,6 +186,11 @@ function OrderItemCard(props: OrderItemCardProps) {
   const isChildItem = props.isChildItem || false;
 
   // Display toggles — resolved once (child items never show image/sku).
+  // Dev-only. Called during render, not from an effect: this component is
+  // @rsc-safe and ships from the hook-free `/pure` entry. warnMissingProps
+  // dedupes, so a re-render does not flood the console.
+  warnMissingProps(props);
+
   const titleLinkable = props.titleLinkable !== undefined ? props.titleLinkable : true;
   const showImage = isChildItem ? false : props.showImage !== undefined ? props.showImage : true;
   const showSku = isChildItem ? false : props.showSku !== undefined ? props.showSku : true;

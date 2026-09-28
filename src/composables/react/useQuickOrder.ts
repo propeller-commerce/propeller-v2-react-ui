@@ -55,6 +55,8 @@ export interface QuickOrderMatch {
   grossPrice: number;
   /** Minimum order quantity (defaults to 1). */
   minQuantity: number;
+  /** Order step: quantities run min, min+step, min+2*step, … (defaults to 1). */
+  step: number;
   /** Thumbnail URL, if any. */
   imageUrl: string;
   /** Price is quoted on request — not orderable through a bulk flow. */
@@ -151,6 +153,7 @@ function toMatch(item: Product | Cluster, language?: string): QuickOrderMatch {
   const grossPrice = displayItem?.price?.gross ?? 0;
   // Minimum order quantity: prefer the product's, floor at 1.
   const minQuantity = Math.max(1, (displayItem as Product)?.minimumQuantity ?? 1);
+  const step = Math.max(1, (displayItem as Product)?.unit ?? 1);
   // Canonical image accessor (handles product vs cluster default product).
   const imageUrl = isCluster
     ? getClusterImageUrl(item as Cluster)
@@ -163,6 +166,7 @@ function toMatch(item: Product | Cluster, language?: string): QuickOrderMatch {
     netPrice,
     grossPrice,
     minQuantity,
+    step,
     imageUrl,
     priceOnRequest: isPriceOnRequest(item),
   };

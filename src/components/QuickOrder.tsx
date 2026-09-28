@@ -47,6 +47,8 @@ interface Row {
   quantity: number;
   /** Minimum order quantity for the resolved product. */
   minQuantity: number;
+  /** Order step for the resolved product. */
+  step: number;
   /** Typeahead candidates for this row (open dropdown). */
   matches: QuickOrderMatch[];
   /** `true` while this row's search is in flight. */
@@ -57,6 +59,12 @@ interface Row {
 }
 
 let ROW_SEQ = 0;
+/** Round to the nearest orderable quantity: at least `min`, on the `min + n*step` grid. */
+function snapToStep(value: number, min: number, step: number): number {
+  if (!Number.isFinite(value) || value <= min) return min;
+  return Math.round((value - min) / (step || 1)) * (step || 1) + min;
+}
+
 function blankRow(): Row {
   ROW_SEQ += 1;
   return {
@@ -68,6 +76,7 @@ function blankRow(): Row {
     grossPrice: 0,
     quantity: 1,
     minQuantity: 1,
+    step: 1,
     matches: [],
     searching: false,
     searched: false,
@@ -296,6 +305,7 @@ function QuickOrderInner(props: QuickOrderProps) {
         grossPrice: match.grossPrice,
         quantity: match.minQuantity,
         minQuantity: match.minQuantity,
+        step: match.step,
         matches: [],
         searching: false,
         searched: false,
@@ -310,7 +320,7 @@ function QuickOrderInner(props: QuickOrderProps) {
       setRows((prev) =>
         prev.map((r) =>
           r.key === key
-            ? { ...r, quantity: Number.isFinite(n) && n > 0 ? Math.max(r.minQuantity, n) : r.minQuantity }
+            ? { ...r, quantity: snapToStep(n, r.minQuantity, r.step) }
             : r
         )
       );
@@ -379,6 +389,7 @@ function QuickOrderInner(props: QuickOrderProps) {
             grossPrice: exact.grossPrice,
             quantity: Math.max(exact.minQuantity, line.quantity),
             minQuantity: exact.minQuantity,
+            step: exact.step,
           });
         }
         if (resolved.length) {
@@ -551,7 +562,7 @@ function QuickOrderInner(props: QuickOrderProps) {
                   <input
                     type="number"
                     min={r.minQuantity}
-                    step={1}
+                    step={r.step || 1}
                     value={r.productId ? r.quantity : ''}
                     disabled={!r.productId}
                     onChange={(e) => setQuantity(r.key, e.target.value)}
