@@ -8,6 +8,32 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.26.1] - 2026-09-28
+
+### Fixed
+
+- **A quoted-price product could still be added to the cart from a grid.**
+  0.26.0 guarded the PRICE on `ProductCard` but not the ACTION beside it, so a
+  listing showed "Price on request" next to a working quantity stepper and
+  add-to-cart button — and the line went in at 0. The card now offers
+  "Request a price", linking to the product page that owns the quote flow;
+  `FavoriteListItem` suppresses add-to-cart for these products outright. The
+  check sits before the injected-component branch, so a host-supplied control
+  is gated too.
+
+- **Popovers inherited the host header’s text colour.** The search input, the
+  autosuggest dropdown, the cart sidebar and the cart popover each set their own
+  background but not their own text colour, so a shop with a dark header — which
+  has to colour that bar to style the triggers inside it — got white text on
+  their light surfaces. They are DOM children of those triggers, so the colour
+  cascaded straight in. Each now sets `text-foreground` explicitly, as
+  `AccountIconAndMenu` already did.
+
+### Changed
+
+- `RequestPriceButton` uses a price-tag icon rather than a quote bubble, which
+  read as a comment action.
+
 ## [0.26.0] - 2026-09-28
 
 ### Added

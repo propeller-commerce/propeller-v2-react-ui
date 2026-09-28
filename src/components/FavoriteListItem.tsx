@@ -19,6 +19,7 @@ import {
   ProductInventory,
 } from '@propeller-commerce/propeller-sdk-v2';
 import AddToCart from './AddToCart';
+import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
 import ItemStock from './ItemStock';
 import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
@@ -492,7 +493,7 @@ function FavoriteListItemActions(props: { className?: string }) {
       }
       onClick={(e) => e.stopPropagation()}
     >
-      {resolved.allowAddToCart !== false && isProduct && !!resolved.graphqlClient ? (
+      {resolved.allowAddToCart !== false && isProduct && !!resolved.graphqlClient && !isPriceOnRequest(product) ? (
         <AddToCart
           className="flex items-center gap-2"
           product={product}

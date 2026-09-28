@@ -304,7 +304,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
           ) : null}
         </button>
         {props.showTotals && isHovered && totalItems > 0 ? (
-          <div className="propeller-cart-icon__popover absolute top-full right-0 mt-1 z-40 bg-popover border border-border rounded-container shadow-lg px-3 py-2 min-w-[140px] text-sm whitespace-nowrap">
+          <div className="propeller-cart-icon__popover absolute top-full right-0 mt-1 z-40 bg-popover text-foreground border border-border rounded-container shadow-lg px-3 py-2 min-w-[140px] text-sm whitespace-nowrap">
             <div className="flex justify-between gap-4">
               <span className="propeller-cart-icon__popover-label text-muted-foreground">
                 {totalLabel('totalLabel')}
@@ -332,7 +332,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
         aria-modal="true"
         aria-label={sidebarTitle}
         data-open={sidebarOpen ? 'true' : 'false'}
-        className={cn(`propeller-cart-icon__sidebar fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-card shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-border${sidebarOpen ? ' translate-x-0' : ' translate-x-full'}${props.sidebarClassName ? ' ' + props.sidebarClassName : ''}`)}
+        className={cn(`propeller-cart-icon__sidebar fixed inset-y-0 right-0 z-[70] w-full max-w-md bg-card text-foreground shadow-2xl transform transition-transform duration-300 ease-in-out border-l border-border${sidebarOpen ? ' translate-x-0' : ' translate-x-full'}${props.sidebarClassName ? ' ' + props.sidebarClassName : ''}`)}
       >
         <div className="flex flex-col h-full">
           {isMounted ? (

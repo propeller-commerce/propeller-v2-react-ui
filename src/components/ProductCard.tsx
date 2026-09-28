@@ -940,7 +940,7 @@ function ProductCardAddToCart(props: {
   /** Override the AddToCart wrapper class. */
   className?: string;
 }) {
-  const { product, resolved } = useProductCard();
+  const { product, derived, resolved, handleProductClick } = useProductCard();
   // Checked before the injected component so a host-supplied control is gated too.
   if (isContentHidden(resolved.portalMode, resolved.user, resolved.isAuthenticated)) {
     return (
@@ -949,6 +949,22 @@ function ProductCardAddToCart(props: {
         labels={resolved.addToCartLabels}
         onLoginClick={resolved.onLoginClick}
       />
+    );
+  }
+  // A quoted price cannot be ordered from a grid: the quantity stepper has no
+  // price to multiply and the line would submit at 0. Send the shopper to the
+  // product page, which owns the request-a-price flow.
+  if (isPriceOnRequest(product)) {
+    return (
+      <a
+        href={derived.productUrl}
+        onClick={handleProductClick}
+        className={cn(
+          `propeller-product-card__view-product inline-flex h-10 w-full items-center justify-center rounded-control bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 ${props.className || ''}`
+        )}
+      >
+        {getLabel(resolved.priceLabels, 'requestPrice', 'Request a price')}
+      </a>
     );
   }
   const InjectedAddToCart = resolved.addToCartComponent;

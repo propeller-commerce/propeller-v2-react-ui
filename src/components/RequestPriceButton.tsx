@@ -3,7 +3,7 @@
  * @rsc-blocked — Client-only component: takes click handlers.
  */
 import * as React from 'react';
-import { MessageSquareQuote } from 'lucide-react';
+import { Tag } from 'lucide-react';
 import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 
@@ -55,7 +55,7 @@ export function RequestPriceButton(props: RequestPriceButtonProps) {
         if (props.onRequestPrice) props.onRequestPrice();
       }}
     >
-      <MessageSquareQuote className="propeller-request-price__icon w-4 h-4" aria-hidden="true" />
+      <Tag className="propeller-request-price__icon w-4 h-4" aria-hidden="true" />
       {label}
     </button>
   );
