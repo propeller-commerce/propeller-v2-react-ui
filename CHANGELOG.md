@@ -42,15 +42,15 @@ between minor versions; breaking changes are called out below and in
   `priceOnRequest` renders in its place, and a card for such a product may
   carry no price object at all. Existing callers are unaffected.
 
-- **The PDP gates add-to-cart in the WordPress plugin's order**: `orderable`
-  first, then the display mode. A non-orderable product gets neither control, a
-  quoted one gets the request button, and an anonymous visitor gets the log-in
-  action rather than a list they cannot be quoted from.
+- **The PDP gates add-to-cart on `orderable` before the display mode.** A
+  non-orderable product gets neither control, a quoted one gets the request
+  button, and an anonymous visitor gets the log-in action rather than a list they
+  cannot be quoted from.
 
 - **Quick order excludes quoted products.** A bulk upload reports the code as
   unresolved instead of adding a line priced at 0; picking one from the
-  typeahead clears the row with a notice. Matches the plugin, which drops them
-  from quick-order search results server-side.
+  typeahead clears the row with a notice. Bulk flows have nowhere to show a
+  price and would submit the line at 0.
 
 ## [0.25.0] - 2026-09-25
 
