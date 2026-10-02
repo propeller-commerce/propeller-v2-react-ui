@@ -26,7 +26,9 @@ const ALLOWED = new Map([
 const files = execFileSync('git', ['ls-files', 'src/**/*.tsx'], { cwd: root, encoding: 'utf8' })
   .trim()
   .split('\n')
-  .filter(Boolean);
+  .filter(Boolean)
+  // Tests render a raw <img> as a stand-in for the host's image component.
+  .filter((f) => !f.includes('__tests__'));
 
 const failures = [];
 
