@@ -28,6 +28,7 @@ export {
   PropellerProvider,
   usePropellerContext,
   usePropellerDeps,
+  useImgComponent,
   useRequiredPropellerDeps,
   usePropellerScope,
   useUserMode,
@@ -289,5 +290,6 @@ export { default as DefaultAddToFavorite } from './components/AddToFavorite';
 export { default as DefaultProductBundles } from './components/ProductBundles';
 export { default as DefaultProductBulkPrices } from './components/ProductBulkPrices';
 export { DefaultProductImage } from './components/defaults/DefaultProductImage';
+export { PropellerImg, type PropellerImgProps } from './components/PropellerImg';
 export { DefaultProductBadges } from './components/defaults/DefaultProductBadges';
 export { DefaultProductSurcharges } from './components/defaults/DefaultProductSurcharges';

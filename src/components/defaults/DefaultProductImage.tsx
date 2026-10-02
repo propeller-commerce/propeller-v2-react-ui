@@ -3,6 +3,8 @@
 import React from 'react';
 import { getLanguageString } from '@propeller-commerce/propeller-v2-core-ui';
 import type { ImageComponentProps } from '@propeller-commerce/propeller-v2-core-ui';
+import { PropellerImg } from '../PropellerImg';
+import { useImgComponent } from '../../context/PropellerContext';
 
 /**
  * Default product / cluster image renderer for the extension API.
@@ -89,6 +91,7 @@ export function pickImageUrl(mediaItems: MediaItem[], target: string): string | 
 
 export function DefaultProductImage(props: ImageComponentProps): React.JSX.Element | null {
   const { product, cluster, className } = props;
+  const Img = useImgComponent();
   const targetLanguage = props.language ?? 'NL';
 
   const mediaItems = (() => {
@@ -129,7 +132,8 @@ export function DefaultProductImage(props: ImageComponentProps): React.JSX.Eleme
   }
 
   return (
-    <img
+    <PropellerImg
+      as={Img}
       src={url}
       alt={altText}
       className={className ?? 'h-full w-full object-contain'}

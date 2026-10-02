@@ -26,6 +26,8 @@ import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface FavoriteListItemProps {
   /** Product or Cluster to be listed as a favorite list item */
@@ -300,6 +302,7 @@ function FavoriteListItem(rawProps: FavoriteListItemProps) {
  */
 function FavoriteListItemImage(props: { className?: string }) {
   const { derived, handleItemClick, resolved } = useFavoriteListItemContext();
+  const Img = useImgComponent();
   const { imageUrl, name, productUrl } = derived;
   const linkable = resolved.titleLinkable !== false;
   const wrapperClass =
@@ -308,15 +311,17 @@ function FavoriteListItemImage(props: { className?: string }) {
   const inner = (
     <>
       {!!imageUrl ? (
-        <img
+        <PropellerImg
+          as={Img}
           className="propeller-favorite-list-item__image h-full w-full object-contain"
           src={imageUrl}
           alt={name}
+          loading="lazy"
         />
       ) : null}
       {!imageUrl ? (
         <div className="propeller-favorite-list-item__image-placeholder flex h-full w-full items-center justify-center text-foreground-subtle">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-8 w-8">
+          <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-10 w-10">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"

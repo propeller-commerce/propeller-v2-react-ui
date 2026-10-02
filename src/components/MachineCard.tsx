@@ -10,6 +10,8 @@ import * as React from 'react';
 import { SparePartsMachine } from '@propeller-commerce/propeller-sdk-v2';
 import { getLabel, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface MachineCardProps {
   // === Core ===
@@ -74,6 +76,7 @@ function getMachineImageUrl(machine: SparePartsMachine | null | undefined): stri
  */
 export default function MachineCard(props: MachineCardProps): React.JSX.Element {
   const { machine, href, language } = props;
+  const Img = useImgComponent();
   // A machine with no slug in ANY language has no URL to link to. It used to be
   // dropped from the list entirely, so a customer saw three of four machines
   // with nothing saying why (PWP-993); render it as a plain card instead.
@@ -100,7 +103,8 @@ export default function MachineCard(props: MachineCardProps): React.JSX.Element 
         {showImage && (
           <div className="propeller-machine-card__image aspect-square w-full overflow-hidden bg-background-subtle">
             {imageUrl ? (
-              <img
+              <PropellerImg
+                as={Img}
                 src={imageUrl}
                 alt={name}
                 loading="lazy"
@@ -114,6 +118,7 @@ export default function MachineCard(props: MachineCardProps): React.JSX.Element 
                 className="propeller-machine-card__image-placeholder flex h-full w-full items-center justify-center text-foreground-subtle"
               >
                 <svg
+                  aria-hidden="true"
                   className="h-12 w-12"
                   fill="none"
                   stroke="currentColor"

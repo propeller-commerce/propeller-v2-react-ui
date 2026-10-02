@@ -27,6 +27,8 @@ import { getLabel, formatPrice as formatPriceHelper, localeForLanguage } from '@
 import type { AnyUser } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { useQuickOrder, type QuickOrderMatch } from '../composables/react/useQuickOrder';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 // ── Row model ──────────────────────────────────────────────────────────────────
 
@@ -217,6 +219,7 @@ function QuickOrderInner(props: QuickOrderProps) {
     labels,
   } = props;
 
+  const Img = useImgComponent();
   const user = (props.user ?? null) as AnyUser;
   const graphqlClient = props.graphqlClient!;
   // Price formatter — a consumer-supplied `formatPrice` wins (it owns its own
@@ -517,7 +520,7 @@ function QuickOrderInner(props: QuickOrderProps) {
                             >
                               {m.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={m.imageUrl} alt="" width={32} height={32} className="rounded object-cover" />
+                                <PropellerImg as={Img} src={m.imageUrl} alt="" width={32} height={32} className="rounded object-cover" loading="lazy" />
                               ) : null}
                               <span className="flex-1">
                                 <span className="block text-foreground">{m.name}</span>

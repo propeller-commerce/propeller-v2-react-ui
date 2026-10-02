@@ -8,6 +8,62 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.28.0] - 2026-10-02
+
+### Added
+
+- **`imgComponent` on `<PropellerDepsProvider>` — one setting routes every
+  image through the host’s image component.** Components rendered a bare
+  `<img src="https://media.…">`, so catalog images were fetched straight from
+  the media CDN. That CDN sends no `X-Robots-Tag` and serves no `robots.txt`,
+  so those images sat outside the storefront’s crawler directives and got none
+  of the host framework’s image optimisation. The existing `imageComponent`
+  slot could not close this: it takes a `product`/`cluster` and resolves the
+  URL itself, so it only fitted five surfaces, and the other nineteen image
+  sites had already resolved a URL string by render time. Set `imgComponent`
+  once on the provider and images across the package route through it,
+  including components added later. Optional — omitting it keeps the previous
+  markup. (PWP-1001)
+- **`<PropellerImg>` and `useImgComponent()` are exported.** Hosts composing
+  their own cards get the same seam; `<PropellerImg>` is also on the `/pure`
+  entry for Server Components.
+- **`OrderItemCard` accepts `imgComponent` as a prop.** It is `@rsc-safe` and
+  reads no context, so the provider cannot reach it — same direct-prop
+  convention as its existing `priceComponent` / `stockComponent`.
+
+### Changed
+
+- **Nineteen image sites now render `<PropellerImg>`** across `ProductCard`,
+  `ClusterCard`, `ProductGallery`, `CartItem`, `OrderItemCard`, `SearchBar`,
+  `ProductBundles`, `MachineCard`, `AddToCart`, `QuickOrder`, `ItemsOverview`,
+  `FavoriteListItem`, `FavoriteListDetails`, `ClusterOptions`,
+  `ClusterConfigurator`, `CartBonusItems` and `DefaultProductImage`. Markup is
+  unchanged when no component is injected.
+- **Carrier and payment-provider logos stay plain `<img>`.** Their domains sit
+  outside the host’s image allowlist, so routing them through a framework
+  image component would stop them loading. They are catalog-external and not
+  crawlable.
+- **`npm run check:img` fails the build on a raw `<img>`.** The seam only holds
+  if new components use it, and a raw `<img>` opts a surface out silently.
+  Wired into `validate` and `prepublishOnly`.
+
+### Fixed
+
+- **The "no image" placeholder was two different icons.** Cards, favourites and
+  `DefaultProductImage` drew one glyph; cart rows, the cart drawer, bundles, the
+  add-to-cart modal and the checkout overview drew another, at a heavier stroke
+  weight — so the same missing-image product looked like two different states
+  depending on which surface showed it. All of them now use the card icon at a
+  consistent stroke weight. The machine card keeps its own glyph, which is
+  deliberate.
+- **The cart drawer’s image box did not centre its contents.** It overrides
+  `CartItem.Image`’s class, and the override dropped the flex centring, so the
+  placeholder sat top-left at its natural size instead of filling the box.
+- **Placeholder icons were exposed to screen readers.** They carry no
+  information the row does not already state in text, so they now set
+  `aria-hidden`, matching what `DefaultProductImage` already did.
+---
+
 ## [0.27.0] - 2026-09-28
 
 ### Fixed

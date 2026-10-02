@@ -14,6 +14,8 @@ import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-
 
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 /**
  * Flattened render model for one product inside an option dropdown.
@@ -168,6 +170,7 @@ function ClusterOptions(rawProps: ClusterOptionsProps) {
   // Explicit props win; otherwise infra (language, user, portalMode) is
   // resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  const Img = useImgComponent();
   const [selectedProductIds, setSelectedProductIds] = useState<Record<string, string>>({});
   function getOptionsForRender(): RenderedOption[] {
     const language = props.language as string | undefined;
@@ -279,19 +282,22 @@ function ClusterOptions(rawProps: ClusterOptionsProps) {
               {option.hasSelection ? (
                 <div className="propeller-cluster-options__preview mt-3 flex items-center gap-3 rounded-container border border-border-subtle bg-surface-hover p-3">
                   {!!option.previewImageUrl ? (
-                    <img
+                    <PropellerImg
+                      as={Img}
                       className="propeller-cluster-options__preview-image h-12 w-12 flex-shrink-0 rounded border border-border-subtle bg-card object-contain"
                       src={option.previewImageUrl}
                       alt={option.previewName}
+                      loading="lazy"
                     />
                   ) : null}
                   {!option.previewImageUrl ? (
                     <div className="propeller-cluster-options__preview-image-placeholder flex h-12 w-12 flex-shrink-0 items-center justify-center rounded border border-border bg-surface-hover">
                       <svg
+                      aria-hidden="true"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
-                        className="h-5 w-5 text-foreground-subtle"
+                        className="h-6 w-6 text-foreground-subtle"
                       >
                         <path
                           strokeLinecap="round"

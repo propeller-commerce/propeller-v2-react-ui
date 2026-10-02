@@ -15,6 +15,8 @@ import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-comme
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultItemStockImpl from './ItemStock';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface CartItemProps {
   /** GraphQL client for the Propeller SDK. Resolved from PropellerProvider when omitted. */
@@ -601,27 +603,30 @@ function CartItem(rawProps: CartItemProps) {
 /** Product / placeholder image. */
 function CartItemImage(props: { className?: string } = {}) {
   const { derived } = useCartItemContext();
+  const Img = useImgComponent();
   return (
     <div className={props.className ?? 'propeller-cart-item__media w-20 h-20 md:w-24 md:h-24 flex-shrink-0 bg-surface-hover flex items-center justify-center overflow-hidden relative rounded-control'}>
       {!!derived.imageUrl ? (
-        <img
+        <PropellerImg
+          as={Img}
           className="propeller-cart-item__image w-full h-full object-contain p-1"
           src={derived.imageUrl}
           alt={derived.name}
+          loading="lazy"
         />
       ) : null}
       {!derived.imageUrl ? (
-        <svg
+        <svg aria-hidden="true"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
-          className="propeller-cart-item__image-placeholder w-8 h-8 text-foreground-subtle"
-          strokeWidth={1.5}
+          className="propeller-cart-item__image-placeholder w-10 h-10 md:w-12 md:h-12 text-foreground-subtle"
+          strokeWidth={1}
         >
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
           />
         </svg>
       ) : null}
@@ -803,6 +808,7 @@ function CartItemNotes(props: { className?: string } = {}) {
  *  populates the state). */
 function CartItemCrossupsells(props: { className?: string } = {}) {
   const { resolved, state, helpers, handlers } = useCartItemContext();
+  const Img = useImgComponent();
   if (state.visibleCrossupsells.length === 0) return null;
   return (
     <div className={props.className ?? 'propeller-cart-item__crossupsells mt-3 pt-3 border-t border-border'}>
@@ -821,10 +827,12 @@ function CartItemCrossupsells(props: { className?: string } = {}) {
               onClick={(e) => handlers.onCrossupsellClick(item, e)}
             >
               {!!helpers.getCrossupsellImageUrl(item) ? (
-                <img
+                <PropellerImg
+                  as={Img}
                   className="propeller-cart-item__crossupsell-image w-10 h-10 object-contain rounded flex-shrink-0"
                   src={helpers.getCrossupsellImageUrl(item)}
                   alt={helpers.getCrossupsellName(item)}
+                  loading="lazy"
                 />
               ) : null}
               <div className="min-w-0">

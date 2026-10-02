@@ -10,6 +10,8 @@ import * as React from 'react';
 import { useState } from 'react';
 import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface ProductGalleryProps {
   /**
@@ -40,6 +42,7 @@ export interface ProductGalleryProps {
  * cursor-zoom hint and a fullscreen lightbox with prev/next navigation.
  */
 function ProductGallery(props: ProductGalleryProps) {
+  const Img = useImgComponent();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const images = props.images || [];
@@ -77,10 +80,12 @@ function ProductGallery(props: ProductGalleryProps) {
           </div>
         ) : null}
         {images.length > 0 ? (
-          <img
+          <PropellerImg
+            as={Img}
             alt={getLabel(props.labels, 'productImageAlt', 'Product image')}
             src={mainImage}
             onClick={openLightbox}
+            loading="eager"
             className={`h-full w-full object-contain p-8 transition-transform duration-200 ${props.enableZoom !== false ? 'cursor-zoom-in hover:scale-105' : ''}`}
           />
         ) : null}
@@ -94,10 +99,12 @@ function ProductGallery(props: ProductGalleryProps) {
               onClick={() => setSelectedIndex(index)}
               className={`propeller-product-gallery__thumbnail relative flex-shrink-0 w-20 h-20 rounded-container border-2 overflow-hidden transition-all bg-card ${selectedIndex === index ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-border'}`}
             >
-              <img
+              <PropellerImg
+                as={Img}
                 className="w-full h-full object-contain p-1"
                 src={img}
                 alt={`${getLabel(props.labels, 'productImageAlt', 'Product image')} ${index + 1}`}
+                loading="lazy"
               />
             </button>
           ))}
@@ -146,11 +153,12 @@ function ProductGallery(props: ProductGalleryProps) {
               </svg>
             </button>
           ) : null}
-          <img
+          <PropellerImg
+            as={Img}
             alt={getLabel(props.labels, 'productImageFullscreenAlt', 'Product image fullscreen')}
             className="max-h-full max-w-full object-contain rounded-lg"
             src={mainImage}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => (e as { stopPropagation?: () => void }).stopPropagation?.()}
           />
           {hasThumbnails ? (
             <button

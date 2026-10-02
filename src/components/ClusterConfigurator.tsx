@@ -15,6 +15,8 @@ import {
 import { useClusterConfigurator } from '../composables/react/useClusterConfigurator';
 import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 /**
  * A computed object containing a cluster config setting enriched with
@@ -95,6 +97,7 @@ export interface ClusterConfiguratorProps {
  * resolve the configured product.
  */
 function ClusterConfigurator(props: ClusterConfiguratorProps) {
+  const Img = useImgComponent();
   const { settingsWithValues, handleAttributeSelect, initFromProduct } = useClusterConfigurator({
     products: props.products,
     config: props.config,
@@ -209,7 +212,7 @@ function ClusterConfigurator(props: ClusterConfiguratorProps) {
                       data-selected={setting.selectedValue === val ? 'true' : 'false'}
                       className={`propeller-cluster-configurator__image-swatch relative w-16 h-16 rounded-control border-2 overflow-hidden transition-all ${setting.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${setting.selectedValue === val ? 'border-secondary ring-2 ring-secondary/30 ring-offset-1' : 'border-border hover:border-secondary/30'}`}
                     >
-                      <img className="propeller-cluster-configurator__image w-full h-full object-cover" src={val} alt={val} />
+                      <PropellerImg as={Img} className="propeller-cluster-configurator__image w-full h-full object-cover" src={val} alt={val} loading="lazy" />
                       {setting.selectedValue === val ? (
                         <div className="propeller-cluster-configurator__image-check absolute inset-0 bg-secondary bg-opacity-20 flex items-center justify-center">
                           <svg

@@ -9,6 +9,7 @@ import type { Cluster, OrderItem, Product } from '@propeller-commerce/propeller-
 import { formatPrice, getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultProductPriceImpl from './ProductPrice';
 import DefaultItemStockImpl from './ItemStock';
+import { PropellerImg } from './PropellerImg';
 
 export interface OrderItemCardProps {
   /** The order item to display */
@@ -85,6 +86,8 @@ export interface OrderItemCardProps {
   // renders the Default* fallback.
   priceComponent?: React.ComponentType<import('@propeller-commerce/propeller-v2-core-ui').PriceComponentProps>;
   stockComponent?: React.ComponentType<import('@propeller-commerce/propeller-v2-core-ui').StockComponentProps>;
+  /** Replaces the `<img>`. Passed directly: this component reads no context. */
+  imgComponent?: React.ComponentType<import('@propeller-commerce/propeller-v2-core-ui').ImgComponentProps>;
 }
 
 // ── Pure accessors (module scope — created once, not per render) ────────────────
@@ -242,10 +245,12 @@ function OrderItemCard(props: OrderItemCardProps) {
             {showImage ? (
               productImage ? (
                 <div className="propeller-order-item-card__media relative w-16 h-16 flex-shrink-0 rounded overflow-hidden">
-                  <img
+                  <PropellerImg
+                    as={props.imgComponent}
                     className="propeller-order-item-card__image object-cover w-full h-full"
                     src={productImage}
                     alt={productName}
+                    loading="lazy"
                   />
                 </div>
               ) : (

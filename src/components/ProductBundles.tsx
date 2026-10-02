@@ -14,6 +14,8 @@ import { useInfraProps } from '../composables/react/useInfraProps';
 import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface ProductBundlesProps {
   // === Core ===
@@ -169,6 +171,7 @@ function getProductName(product: Product, language?: string): string {
 function ProductBundles(rawProps: ProductBundlesProps) {
   // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  const Img = useImgComponent();
   const language = props.language as string | undefined;
   const currencySymbol = props.currency ?? '€';
   const money = (value: number): string => formatPriceHelper(value, { symbol: currencySymbol, locale: localeForLanguage(props.language) });
@@ -327,10 +330,12 @@ function ProductBundles(rawProps: ProductBundlesProps) {
                           <div className="flex flex-col items-center text-center w-40">
                             <div className="propeller-product-bundles__item-media w-32 h-32 bg-surface-hover rounded-container overflow-hidden flex-shrink-0 mb-2">
                               {getProductImage(item.product) ? (
-                                <img
+                                <PropellerImg
+                                  as={Img}
                                   className="propeller-product-bundles__item-image w-full h-full object-contain p-2"
                                   src={getProductImage(item.product)}
                                   alt={getProductName(item.product, language)}
+                                  loading="lazy"
                                 />
                               ) : null}
                             </div>
@@ -520,7 +525,8 @@ function ProductBundles(rawProps: ProductBundlesProps) {
                     lastAddedBundle.items &&
                     lastAddedBundle.items.length > 0 &&
                     getProductImage(lastAddedBundle.items[0].product) ? (
-                      <img
+                      <PropellerImg
+                        as={Img}
                         className="propeller-product-bundles__modal-image w-16 h-16 object-contain rounded border border-border-subtle flex-shrink-0"
                         src={
                           lastAddedBundle?.items?.[0]
@@ -528,20 +534,22 @@ function ProductBundles(rawProps: ProductBundlesProps) {
                             : ''
                         }
                         alt={lastAddedBundle?.name || 'Bundle'}
+                        loading="lazy"
                       />
                     ) : (
                       <div className="propeller-product-bundles__modal-image-placeholder w-16 h-16 flex items-center justify-center rounded border border-border-subtle flex-shrink-0 bg-surface-hover">
                         <svg
+                      aria-hidden="true"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
                           className="w-8 h-8 text-foreground-subtle"
-                          strokeWidth={1.5}
+                          strokeWidth={1}
                         >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                           />
                         </svg>
                       </div>

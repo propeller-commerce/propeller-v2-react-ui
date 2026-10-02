@@ -1,8 +1,9 @@
 ﻿'use client';
 
-import { createContext, useContext, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ComponentType, ReactNode } from 'react';
 import { GraphQLClient, Contact, Customer } from '@propeller-commerce/propeller-sdk-v2';
 import type {
+  ImgComponentProps,
   Services,
   ShopMode,
   UserMode,
@@ -36,6 +37,8 @@ export interface PropellerDeps {
   currency: string;
   /** Free-form configuration bag forwarded to components. */
   configuration: unknown;
+  /** Replaces the `<img>` every component renders. Excludes PSP logos. */
+  imgComponent?: ComponentType<ImgComponentProps>;
 }
 
 /**
@@ -148,6 +151,11 @@ export function PropellerProvider({ value, children }: PropellerProviderProps) {
  */
 export function usePropellerDeps(): PropellerDeps | null {
   return useContext(PropellerDepsContext);
+}
+
+/** The host's injected image component; `undefined` outside the provider. */
+export function useImgComponent(): ComponentType<ImgComponentProps> | undefined {
+  return useContext(PropellerDepsContext)?.imgComponent;
 }
 
 /** Throwing variant — call when deps are required. */

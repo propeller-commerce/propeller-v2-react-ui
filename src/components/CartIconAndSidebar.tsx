@@ -426,7 +426,7 @@ function CartIconAndSidebar(rawProps: CartIconAndSidebarProps) {
                         includeTax={useTax}
                         className="propeller-cart-icon__item"
                       >
-                        <CartItem.Image className="w-20 h-20 flex-shrink-0 bg-surface-hover rounded-control overflow-hidden border border-border-subtle" />
+                        <CartItem.Image className="w-20 h-20 flex-shrink-0 bg-surface-hover rounded-control overflow-hidden border border-border-subtle flex items-center justify-center relative" />
                         <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                           <div>
                             <CartItem.Title className="propeller-cart-icon__item-name text-sm font-medium hover:text-primary line-clamp-2" />

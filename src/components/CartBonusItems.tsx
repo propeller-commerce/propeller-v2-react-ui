@@ -12,6 +12,8 @@ import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface CartBonusItemsProps {
   /** Cart whose `bonusItems` (free items added via incentives) are displayed. */
@@ -52,6 +54,7 @@ export interface CartBonusItemsProps {
  */
 function CartBonusItems(rawProps: CartBonusItemsProps) {
   const props = useInfraProps(rawProps);
+  const Img = useImgComponent();
   const items: CartBaseItem[] = props.bonusItems ?? props.cart?.bonusItems ?? [];
   if (items.length === 0) return null;
 
@@ -80,19 +83,19 @@ function CartBonusItems(rawProps: CartBonusItemsProps) {
             >
               <div className="propeller-cart-bonus-item__media w-20 h-20 flex-shrink-0 bg-surface-hover rounded-control overflow-hidden flex items-center justify-center">
                 {img ? (
-                  <img className="propeller-cart-bonus-item__image w-full h-full object-contain p-1" src={img} alt={name} />
+                  <PropellerImg as={Img} className="propeller-cart-bonus-item__image w-full h-full object-contain p-1" src={img} alt={name} loading="lazy" />
                 ) : (
-                  <svg
+                  <svg aria-hidden="true"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
-                    className="propeller-cart-bonus-item__image-placeholder w-8 h-8 text-foreground-subtle"
-                    strokeWidth={1.5}
+                    className="propeller-cart-bonus-item__image-placeholder w-10 h-10 text-foreground-subtle"
+                    strokeWidth={1}
                   >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
                 )}

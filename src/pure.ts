@@ -23,6 +23,7 @@
  * Component (functions are not serializable across the RSC boundary). Either
  * render `Breadcrumbs` inside a thin client island, or pass only plain data.
  */
+export { PropellerImg, type PropellerImgProps } from './components/PropellerImg';
 export { default as Breadcrumbs, type BreadcrumbsProps } from './components/Breadcrumbs';
 export { default as ClusterJsonLd, type ClusterJsonLdProps } from './components/ClusterJsonLd';
 export { default as ItemListJsonLd, type ItemListJsonLdProps } from './components/ItemListJsonLd';

@@ -30,6 +30,8 @@ import { getLabel } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { getProductImageUrl, getClusterImageUrl } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface FavoriteListDetailsProps {
   /** GraphQL client for the Propeller SDK. Resolved from PropellerProvider when omitted. */
@@ -175,6 +177,7 @@ export interface FavoriteListDetailsProps {
 function FavoriteListDetails(rawProps: FavoriteListDetailsProps) {
   // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  const Img = useImgComponent();
   const FavoriteListItemImpl = props.favoriteListItemComponent ?? DefaultFavoriteListItemImpl;
   const GridPaginationImpl = props.gridPaginationComponent ?? DefaultGridPaginationImpl;
   const { addToList } = useFavorites({
@@ -796,10 +799,12 @@ function FavoriteListDetails(rawProps: FavoriteListDetailsProps) {
                         >
                           <div className="propeller-favorite-list-details__search-item-media h-14 w-14 flex-shrink-0 rounded-control bg-surface-hover overflow-hidden flex items-center justify-center">
                             {getSearchItemImage(item) ? (
-                              <img
+                              <PropellerImg
+                                as={Img}
                                 src={getSearchItemImage(item)}
                                 alt={getSearchItemName(item)}
                                 className="h-full w-full object-contain"
+                                loading="lazy"
                               />
                             ) : (
                               <svg

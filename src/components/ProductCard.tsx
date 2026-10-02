@@ -40,6 +40,8 @@ import type { PropellerInfra } from '../context/PropellerContext';
 import { ProductGridConfig } from '../context/ProductGridContext';
 import { cn } from '../composables/shared/utils/cn';
 import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 // ── Public types ────────────────────────────────────────────────────────────
 
@@ -595,6 +597,7 @@ function ProductCardImage(props: {
   const showFavorite = props.showFavorite ?? !!resolved.enableAddFavorite;
   const isRow = derived.isRow;
   const InjectedImage = resolved.imageComponent;
+  const Img = useImgComponent();
   if (InjectedImage) {
     // Consumer override: full image-area control. Badges + favorite overlay
     // are NOT auto-rendered around the injected image — that's documented
@@ -621,14 +624,16 @@ function ProductCardImage(props: {
     >
       <a className="block h-full w-full" href={derived.productUrl} onClick={handleProductClick}>
         {derived.imageUrl ? (
-          <img
+          <PropellerImg
+            as={Img}
             className="propeller-product-card__image h-full w-full object-contain transition-transform duration-300 group-hover:scale-105"
             src={derived.imageUrl}
             alt={derived.name}
+            loading="lazy"
           />
         ) : (
           <div className="propeller-product-card__image-placeholder flex h-full w-full items-center justify-center text-foreground-subtle">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-16 w-16">
+            <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="h-16 w-16">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"

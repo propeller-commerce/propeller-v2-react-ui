@@ -16,6 +16,8 @@ import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
+import { PropellerImg } from './PropellerImg';
+import { useImgComponent } from '../context/PropellerContext';
 
 export interface SearchBarResult {
   /** Unique identifier */
@@ -236,6 +238,7 @@ function mapToSearchBarResult(
 function SearchBar(rawProps: SearchBarProps) {
   // Explicit props win; otherwise infra is resolved from <PropellerProvider>.
   const props = useInfraProps(rawProps);
+  const Img = useImgComponent();
   const [showDropdown, setShowDropdown] = useState(false);
   const [localTerm, setLocalTerm] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -441,10 +444,12 @@ function SearchBar(rawProps: SearchBarProps) {
                   >
                     {result.imageUrl || noImageUrl() ? (
                       <div className="propeller-search-bar__result-media relative w-16 h-16 flex-shrink-0">
-                        <img
+                        <PropellerImg
+                          as={Img}
                           className="propeller-search-bar__result-image w-full h-full object-contain"
                           src={result.imageUrl || noImageUrl()}
                           alt={result.name}
+                          loading="lazy"
                         />
                       </div>
                     ) : null}
