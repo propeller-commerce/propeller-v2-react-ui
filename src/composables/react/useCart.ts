@@ -6,7 +6,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createServices, ok, err, isCheckoutAllowed, type AnyUser, type Result } from '@propeller-commerce/propeller-v2-core-ui';
 import { CrossupsellType } from '@propeller-commerce/propeller-sdk-v2';
 import type { GraphQLClient, Cart, CartMainItem, Product, Cluster, Contact, Customer, MediaImageProductSearchInput, TransformationsInput, Crossupsell, CrossupsellsQueryVariables, CrossupsellSearchInput, CartProcessResponse } from '@propeller-commerce/propeller-sdk-v2';
-import { initCart, type CartInitConfig } from '../shared/utils/cartInit';
+import { initCart, isCartNotFound, type CartInitConfig } from '../shared/utils/cartInit';
 
 // The cart mutations take the media arguments that decide whether the returned
 // cart items carry any `imageVariants` at all. They are optional and nothing
@@ -186,6 +186,14 @@ export function useCart(options: UseCartOptions): UseCartReturn {
     cartIdRef.current = c.cartId;
   }, []);
 
+  // Drop a cart the API no longer has, so the next resolve starts a fresh one
+  // instead of reusing the dead id.
+  const forgetCart = useCallback(() => {
+    setCart(null);
+    setCreatedCartId('');
+    cartIdRef.current = '';
+  }, []);
+
   const imageSearchFilters = useCallback(
     (): MediaImageProductSearchInput =>
       (configuration?.imageSearchFiltersGrid as MediaImageProductSearchInput) ?? DEFAULT_IMAGE_SEARCH_FILTERS,
@@ -279,11 +287,28 @@ export function useCart(options: UseCartOptions): UseCartReturn {
         else return err('No cart ID provided');
       }
       const service = createServices(graphqlClient).cart;
-      const resultCart = await service.addItemToCart({
-        id: resolvedCartId,
-        input: { productId: opts.product.productId, quantity: opts.quantity, ...(opts.cluster?.clusterId !== undefined && { clusterId: opts.cluster.clusterId }), ...(childItemInputs && { childItems: childItemInputs }), ...(opts.notes && { notes: opts.notes }), ...(opts.price !== undefined && { price: opts.price }) },
-        language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters(),
-      });
+      const input = { productId: opts.product.productId, quantity: opts.quantity, ...(opts.cluster?.clusterId !== undefined && { clusterId: opts.cluster.clusterId }), ...(childItemInputs && { childItems: childItemInputs }), ...(opts.notes && { notes: opts.notes }), ...(opts.price !== undefined && { price: opts.price }) };
+      let resultCart: Cart;
+      try {
+        resultCart = await service.addItemToCart({
+          id: resolvedCartId,
+          input,
+          language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters(),
+        });
+      } catch (e: unknown) {
+        // The remembered cart can be ordered or deleted elsewhere, and the id
+        // outlives it in the host's storage. Forget it and start a fresh cart,
+        // once — `initCart` only ever returns an OPEN cart, so it cannot hand
+        // the dead id back and the retry terminates.
+        if (!isCartNotFound(e) || !opts.createCart) throw e;
+        forgetCart();
+        const fresh = await resolveCart();
+        resultCart = await service.addItemToCart({
+          id: fresh.cartId,
+          input,
+          language, imageSearchFilters: imageSearchFilters(), imageVariantFilters: imageVariantFilters(),
+        });
+      }
       rememberCart(resultCart);
       const addedItem = resultCart.items?.find((i: CartMainItem) => i.productId === opts.product.productId) ?? null;
       opts.afterAddToCart?.(resultCart, addedItem);
@@ -293,7 +318,7 @@ export function useCart(options: UseCartOptions): UseCartReturn {
       setError(msg);
       return err(msg);
     } finally { setLoading(false); }
-  }, [graphqlClient, cartId, language, configuration, resolveCart, rememberCart, imageSearchFilters, imageVariantFilters]);
+  }, [graphqlClient, cartId, language, configuration, resolveCart, rememberCart, forgetCart, imageSearchFilters, imageVariantFilters]);
 
   /**
    * Sequential bulk add. Each add hands its resolved cart id to the next, so

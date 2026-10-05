@@ -24,7 +24,7 @@ import {
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
-import { getProductImageUrl, getProductSku, getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
+import { getProductImageUrl, getProductSku, getLocalizedValue, resolveOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 import CartBonusItems from './CartBonusItems';
@@ -326,12 +326,8 @@ function AddToCart(rawProps: AddToCartProps) {
   function dismissToast(): void {
     setToastVisible(false);
   }
-  /** Round to the nearest valid quantity: at least `min`, on the `min + n*step` grid. */
   function snapQuantity(value: number): number {
-    const min = getMinQuantity(props.product);
-    const step = getStep(props.product);
-    if (value <= min) return min;
-    return Math.round((value - min) / step) * step + min;
+    return resolveOrderableQuantity(value, getMinQuantity(props.product), getStep(props.product));
   }
   function increment(): void {
     setQuantityDraft(null);

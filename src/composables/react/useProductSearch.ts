@@ -329,18 +329,19 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
           ? (options.user as Customer).customerId
           : undefined;
 
-      // Orderlist (contract) scoping. When orderlistIds are supplied, apply them
-      // (unless explicitly disabled); otherwise send applyOrderlists:false so an
-      // authenticated user without a contract still sees the full catalogue.
-      // `applyOrderlists`/`orderlistIds` are accepted by the backend but not yet
-      // present on the SDK's CategoryProductSearchInput type — cast to include them.
+      // Orderlist (contract) scoping. Omit the flag unless the caller opts in or
+      // out: the backend applies the company's own orderlists by default, and
+      // sending `false` made every refetch return the unscoped catalogue.
+      // Not yet on the SDK's CategoryProductSearchInput type — cast to include.
       const orderlistScope =
         options.orderlistIds && options.orderlistIds.length > 0
           ? {
               applyOrderlists: options.applyOrderlists !== false,
               orderlistIds: options.orderlistIds,
             }
-          : { applyOrderlists: false };
+          : options.applyOrderlists === false
+            ? { applyOrderlists: false }
+            : {};
 
       const categoryProductSearchInput = {
         language: lang,
@@ -509,16 +510,17 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
             return;
           }
 
-          // When orderlistIds are supplied, apply them (unless explicitly
-          // disabled); otherwise send applyOrderlists:false so an authed user
-          // without a contract still previews the full catalogue.
+          // Same scoping rule as the grid: omit the flag so the backend applies
+          // the company's orderlists, keeping the preview and the grid in sync.
           const orderlistScope =
             options.orderlistIds && options.orderlistIds.length > 0
               ? {
                   applyOrderlists: options.applyOrderlists !== false,
                   orderlistIds: options.orderlistIds,
                 }
-              : { applyOrderlists: false };
+              : options.applyOrderlists === false
+                ? { applyOrderlists: false }
+                : {};
 
           const userId = resolveListingUserId(options.user, configuration);
           const contactId: number | undefined =

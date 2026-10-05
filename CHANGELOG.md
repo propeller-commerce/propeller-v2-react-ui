@@ -8,6 +8,69 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.29.0] - 2026-10-05
+
+### Fixed
+
+- **Listings no longer drop the company's orderlist on a client-side fetch.**
+  `useProductSearch` sent `applyOrderlists: false` whenever the caller passed
+  no explicit `orderlistIds` — which is every app — so the backend was told to
+  ignore the company's own orderlists. The server render omits the flag and is
+  correctly scoped, so a category page painted the right products and then the
+  first sort, filter, page or company change replaced them with the unscoped
+  catalogue, priced and orderable. The flag is now sent only when the caller
+  actually asks for it, in both the grid fetch and the search-bar preview.
+  `useQuickOrder` had the same default, which let a bulk paste resolve SKUs
+  outside the contract.
+
+  Callers that relied on the implicit `false` for an intentionally unscoped
+  listing must now pass `applyOrderlists={false}` explicitly.
+
+- **`<ProductSlider>` is scoped to the viewer and priced for their company.**
+  `fetchProducts` sent no `userId`, no `companyId` and no
+  `priceCalculateProductInput`, and resolved its ids through the flat
+  `products` resolver, which does not apply orderlist scoping. A featured
+  slider therefore showed products outside the company's assortment at the
+  default company's prices. Its `filterToAssortment` step — whose only job is
+  dropping out-of-assortment crossupsells — asked the same resolver and so
+  could never filter anything. Both now go through `category.products` over
+  `configuration.baseCategoryId`, the path the grid and quick order already
+  use. Without a resolved base category the primary fetch returns nothing
+  rather than an unscoped list, while the crossupsell check falls through to
+  the unverified items so a slider is never blanked by a failed check.
+
+- **Cart quantity steppers keep the line on the order grid.** `CartItem` read
+  `minimumQuantity` and the step but used them only to disable the decrement
+  button: the buttons added or subtracted the step from whatever was there, so
+  a line already off the grid stayed off it (min 2, step 3: 9 → 12). The typed
+  field committed only values at or above the minimum, so clearing it or typing
+  below the minimum left the old quantity stuck. Both steppers now resolve to
+  the grid first, and editing goes through a draft value that resolves on blur
+  — the same rule `<AddToCart>` and `<QuickOrder>` already followed.
+
+- **Add to cart recovers when the remembered cart is gone.** A cart ordered in
+  another browser or deleted leaves its id behind in the host's storage, and
+  every later `cartAddItem` answered `CART_NOT_FOUND_ERROR`. Nothing forgot the
+  id, so each retry failed identically and the badge kept showing the dead
+  cart. `addItem` now forgets it and starts a fresh cart once, then re-adds;
+  the recovery is bounded because cart initialisation only ever returns an
+  `OPEN` cart, and it is skipped when the caller passed `createCart: false`.
+
+- **`useProductInfo` no longer sends every company orderlist as an allowlist.**
+  It fetched all orderlists for the company and passed their ids to
+  `product(orderlistIds:)` with no filter on type, so a NEGATIVE (exclusion)
+  list was applied as an allowlist and inverted the filter. Scoping is left to
+  the backend, which merges positive and negative lists itself — one fewer
+  request per product page.
+
+### Changed
+
+- **The min/step rule comes from `propeller-v2-core-ui`.** `AddToCart`,
+  `QuickOrder` and `CartItem` each carried their own copy, and they had
+  drifted — two of them divided by an unguarded step. All now call
+  `resolveOrderableQuantity` from core-ui 0.11.0, which is the new minimum for
+  this package.
+
 ## [0.28.0] - 2026-10-02
 
 ### Added

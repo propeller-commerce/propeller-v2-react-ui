@@ -218,12 +218,14 @@ export function useQuickOrder(options: UseQuickOrderOptions): UseQuickOrderRetur
       try {
         const service = createServices(graphqlClient).category;
 
-        // Apply the contract when ids are supplied, else explicitly disable so an
-        // authenticated user without one still searches the full catalogue.
+        // Apply the contract when ids are supplied; otherwise omit the flag and
+        // let the backend apply the company's own orderlists.
         const orderlistScope =
           orderlistIds && orderlistIds.length > 0
             ? { applyOrderlists: applyOrderlists !== false, orderlistIds }
-            : { applyOrderlists: false };
+            : applyOrderlists === false
+              ? { applyOrderlists: false }
+              : {};
 
         const userId = resolveListingUserId(user, configuration);
         const contactId: number | undefined =

@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BundleItem, Cart, CartBaseItem, CartMainItem, Cluster, Contact, Crossupsell, Customer, GraphQLClient, MediaImageProductSearchInput, Product, ProductInventory, TransformationsInput, YesNo } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useResolvedProps, type ResolveSpec } from '../composables/react/useResolvedProps';
-import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, localeForLanguage, resolveOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultItemStockImpl from './ItemStock';
 import { cn } from '../composables/shared/utils/cn';
@@ -193,6 +193,8 @@ interface CartItemContextValue {
     crossupsells: Crossupsell[];
     visibleCrossupsells: Crossupsell[];
     addingCrossupsellId: number | null;
+    /** Raw field text while editing; `null` when not being edited. */
+    quantityDraft: string | null;
   };
   helpers: {
     getBundleItemName: (bundleItem: BundleItem) => string;
@@ -205,6 +207,14 @@ interface CartItemContextValue {
   };
   handlers: {
     onQuantityChange: (newQuantity: number) => void;
+    /** Step down, returning an off-grid quantity to the grid first. */
+    onQuantityDecrement: () => void;
+    /** Step up, returning an off-grid quantity to the grid first. */
+    onQuantityIncrement: () => void;
+    /** Accepts any keystroke; commits only a valid quantity. */
+    onQuantityInput: (raw: string) => void;
+    /** Resolves whatever is in the field to an orderable quantity. */
+    onQuantityBlur: () => void;
     onNoteChange: (newNote: string) => void;
     onDelete: () => void;
     onTitleClick: (event: React.MouseEvent) => void;
@@ -242,6 +252,7 @@ function CartItem(rawProps: CartItemProps) {
   // Lazy-initialize from props.cartItem; the previous code seeded to 1/''
   // and then setX in a mount effect, an unnecessary extra render.
   const [quantity, setQuantity] = useState<number>(() => props.cartItem.quantity || 1);
+  const [quantityDraft, setQuantityDraft] = useState<string | null>(() => null);
   const [notes, setNotes] = useState<string>(() => props.cartItem.notes || '');
   const [loading, setLoading] = useState<boolean>(() => false);
   const [deleting, setDeleting] = useState<boolean>(() => false);
@@ -388,6 +399,35 @@ function CartItem(rawProps: CartItemProps) {
     }
   }
 
+  function handleQuantityDecrement(): void {
+    setQuantityDraft(null);
+    const orderable = resolveOrderableQuantity(quantity, minQuantity, step);
+    if (orderable !== quantity) { handleQuantityChange(orderable); return; }
+    if (quantity - step >= minQuantity) handleQuantityChange(quantity - step);
+  }
+
+  function handleQuantityIncrement(): void {
+    setQuantityDraft(null);
+    const orderable = resolveOrderableQuantity(quantity, minQuantity, step);
+    handleQuantityChange(orderable === quantity ? quantity + step : orderable);
+  }
+
+  function handleQuantityInput(raw: string): void {
+    setQuantityDraft(raw);
+    const val = parseInt(raw, 10);
+    if (!isNaN(val) && val >= minQuantity) {
+      handleQuantityChange(resolveOrderableQuantity(val, minQuantity, step));
+    }
+  }
+
+  function handleQuantityBlur(): void {
+    if (quantityDraft === null) return;
+    const val = parseInt(quantityDraft, 10);
+    setQuantityDraft(null);
+    const orderable = resolveOrderableQuantity(val, minQuantity, step);
+    if (orderable !== quantity) handleQuantityChange(orderable);
+  }
+
   function handleNoteChange(note: string): void {
     setNotes(note);
     if (props.onNoteChange) {
@@ -509,6 +549,7 @@ function CartItem(rawProps: CartItemProps) {
       crossupsells,
       visibleCrossupsells: getVisibleCrossupsells(),
       addingCrossupsellId,
+      quantityDraft,
     },
     helpers: {
       getBundleItemName,
@@ -521,6 +562,10 @@ function CartItem(rawProps: CartItemProps) {
     },
     handlers: {
       onQuantityChange: handleQuantityChange,
+      onQuantityDecrement: handleQuantityDecrement,
+      onQuantityIncrement: handleQuantityIncrement,
+      onQuantityInput: handleQuantityInput,
+      onQuantityBlur: handleQuantityBlur,
       onNoteChange: handleNoteChange,
       onDelete: handleDelete,
       onTitleClick: (e) => props.onTitleClick?.(e, props.cartItem),
@@ -937,7 +982,7 @@ function CartItemQuantity(props: { className?: string } = {}) {
         <button
           type="button"
           className="propeller-cart-item__decrement px-2.5 h-full text-muted-foreground hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors rounded-l-control select-none"
-          onClick={() => handlers.onQuantityChange(derived.quantity - derived.step)}
+          onClick={handlers.onQuantityDecrement}
           disabled={derived.quantity <= derived.minQuantity || state.loading}
         >
           -
@@ -947,19 +992,14 @@ function CartItemQuantity(props: { className?: string } = {}) {
           className="propeller-cart-item__quantity w-10 text-center text-sm bg-transparent border-x border-input h-full focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           min={derived.minQuantity}
           step={derived.step}
-          value={derived.quantity}
-          onChange={(e) => {
-            const val = parseInt(e.target.value, 10);
-            if (!isNaN(val) && val >= derived.minQuantity) {
-              // Snap to the nearest valid min + step multiple.
-              handlers.onQuantityChange(Math.round((val - derived.minQuantity) / derived.step) * derived.step + derived.minQuantity);
-            }
-          }}
+          value={state.quantityDraft ?? derived.quantity}
+          onChange={(e) => handlers.onQuantityInput(e.target.value)}
+          onBlur={handlers.onQuantityBlur}
         />
         <button
           type="button"
           className="propeller-cart-item__increment px-2.5 h-full text-muted-foreground hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors rounded-r-control select-none"
-          onClick={() => handlers.onQuantityChange(derived.quantity + derived.step)}
+          onClick={handlers.onQuantityIncrement}
           disabled={state.loading}
         >
           +
@@ -973,13 +1013,9 @@ function CartItemQuantity(props: { className?: string } = {}) {
       className={props.className ?? 'propeller-cart-item__quantity w-14 h-9 text-center text-sm border border-input rounded-control focus:ring-2 focus:ring-primary focus:border-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
       min={derived.minQuantity}
       step={derived.step}
-      value={derived.quantity}
-      onChange={(e) => {
-        const val = parseInt(e.target.value, 10);
-        if (!isNaN(val) && val >= derived.minQuantity) {
-          handlers.onQuantityChange(Math.round((val - derived.minQuantity) / derived.step) * derived.step + derived.minQuantity);
-        }
-      }}
+      value={state.quantityDraft ?? derived.quantity}
+      onChange={(e) => handlers.onQuantityInput(e.target.value)}
+      onBlur={handlers.onQuantityBlur}
     />
   );
 }

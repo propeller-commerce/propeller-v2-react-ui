@@ -23,7 +23,7 @@ import type {
   MediaImageProductSearchInput,
   TransformationsInput,
 } from '@propeller-commerce/propeller-sdk-v2';
-import { getLabel, formatPrice as formatPriceHelper, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, formatPrice as formatPriceHelper, localeForLanguage, resolveOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
 import type { AnyUser } from '@propeller-commerce/propeller-v2-core-ui';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { useQuickOrder, type QuickOrderMatch } from '../composables/react/useQuickOrder';
@@ -61,11 +61,6 @@ interface Row {
 }
 
 let ROW_SEQ = 0;
-/** Round to the nearest orderable quantity: at least `min`, on the `min + n*step` grid. */
-function snapToStep(value: number, min: number, step: number): number {
-  if (!Number.isFinite(value) || value <= min) return min;
-  return Math.round((value - min) / (step || 1)) * (step || 1) + min;
-}
 
 function blankRow(): Row {
   ROW_SEQ += 1;
@@ -323,7 +318,7 @@ function QuickOrderInner(props: QuickOrderProps) {
       setRows((prev) =>
         prev.map((r) =>
           r.key === key
-            ? { ...r, quantity: snapToStep(n, r.minQuantity, r.step) }
+            ? { ...r, quantity: resolveOrderableQuantity(n, r.minQuantity, r.step) }
             : r
         )
       );
