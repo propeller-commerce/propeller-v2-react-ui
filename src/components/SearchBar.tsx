@@ -408,7 +408,7 @@ function SearchBar(rawProps: SearchBarProps) {
               'propeller-search-bar__input w-full pl-10 pr-10 py-2 bg-card text-foreground border border-input rounded-container focus:outline-none focus:ring-2 focus:ring-secondary placeholder:text-muted-foreground',
               props.inputClassName
             )}
-            placeholder={props.placeholder || 'Search products...'}
+            placeholder={props.placeholder || getLabel(props.labels, 'placeholder', 'Search products...')}
             value={localTerm}
             onChange={(e) => handleInputChange((e.target as HTMLInputElement).value)}
           />

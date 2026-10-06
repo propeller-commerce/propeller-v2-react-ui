@@ -18,3 +18,7 @@ export * from '@propeller-commerce/propeller-v2-core-ui';
 // Re-exported from `/shared` (type-only) so server modules can build the tree
 // without pulling the React composable's runtime into the server bundle.
 export type { MenuCategory } from './composables/react/useMenu';
+
+// Pure predicate — server pages need it to decide whether to render a price
+// or the quote label, and the main entry would draw a client boundary.
+export { isPriceOnRequest } from './composables/shared/utils/priceOnRequest';
