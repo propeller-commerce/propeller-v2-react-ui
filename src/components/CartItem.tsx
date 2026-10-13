@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { BundleItem, Cart, CartBaseItem, CartMainItem, Cluster, Contact, Crossupsell, Customer, GraphQLClient, MediaImageProductSearchInput, Product, ProductInventory, TransformationsInput, YesNo } from '@propeller-commerce/propeller-sdk-v2';
 import { useCart } from '../composables/react/useCart';
 import { useResolvedProps, type ResolveSpec } from '../composables/react/useResolvedProps';
-import { getLabel, getLocalizedValue, localeForLanguage, resolveOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, localeForLanguage, resolveOrderableQuantity, incrementOrderableQuantity, decrementOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import DefaultItemStockImpl from './ItemStock';
 import { cn } from '../composables/shared/utils/cn';
@@ -401,15 +401,13 @@ function CartItem(rawProps: CartItemProps) {
 
   function handleQuantityDecrement(): void {
     setQuantityDraft(null);
-    const orderable = resolveOrderableQuantity(quantity, minQuantity, step);
-    if (orderable !== quantity) { handleQuantityChange(orderable); return; }
-    if (quantity - step >= minQuantity) handleQuantityChange(quantity - step);
+    const next = decrementOrderableQuantity(quantity, minQuantity, step);
+    if (next !== quantity) handleQuantityChange(next);
   }
 
   function handleQuantityIncrement(): void {
     setQuantityDraft(null);
-    const orderable = resolveOrderableQuantity(quantity, minQuantity, step);
-    handleQuantityChange(orderable === quantity ? quantity + step : orderable);
+    handleQuantityChange(incrementOrderableQuantity(quantity, minQuantity, step));
   }
 
   function handleQuantityInput(raw: string): void {

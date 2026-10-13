@@ -346,9 +346,44 @@ function PurchaseAuthorizationRequests(rawProps: PurchaseAuthorizationRequestsPr
                       </div>
                       <div className="border-t border-border pt-4 space-y-2 text-sm">
                         <div className="flex justify-between text-muted-foreground">
+                          <span>{getLabel(props.labels, 'subtotal', 'Subtotal:')}</span>
+                          <span>{formatPrice(selectedCart?.total?.subTotal ?? 0)}</span>
+                        </div>
+                        {(selectedCart?.total?.discount ?? 0) > 0 ? (
+                          <div className="flex justify-between text-success">
+                            <span>{getLabel(props.labels, 'discount', 'Discount:')}</span>
+                            <span>-{formatPrice(selectedCart?.total?.discount ?? 0)}</span>
+                          </div>
+                        ) : null}
+                        {/* Shipping and transaction costs are already inside
+                            total.totalGross; without these rows the panel's own
+                            figures never add up to "Total excl. VAT". */}
+                        {Number(selectedCart?.paymentData?.price ?? 0) > 0 ? (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>{getLabel(props.labels, 'transactionCosts', 'Transaction costs:')}</span>
+                            <span>{formatPrice(Number(selectedCart?.paymentData?.price ?? 0))}</span>
+                          </div>
+                        ) : null}
+                        {Number(selectedCart?.postageData?.price ?? 0) > 0 ? (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>{getLabel(props.labels, 'shippingCosts', 'Shipping costs:')}</span>
+                            <span>{formatPrice(Number(selectedCart?.postageData?.price ?? 0))}</span>
+                          </div>
+                        ) : null}
+                        <div className="flex justify-between text-muted-foreground pt-2 border-t border-border">
                           <span>{getLabel(props.labels, 'totalExclVat', 'Total excl. VAT:')}</span>
                           <span>{formatPrice(selectedCart?.total?.totalGross ?? 0)}</span>
                         </div>
+                        {(selectedCart?.taxLevels ?? [])
+                          .filter((t) => t.taxPercentage > 0 && t.price > 0)
+                          .map((tax, index) => (
+                            <div className="flex justify-between text-muted-foreground" key={index}>
+                              <span>
+                                {tax.taxPercentage}% {getLabel(props.labels, 'vat', 'VAT')}:
+                              </span>
+                              <span>{formatPrice(Number(tax.price))}</span>
+                            </div>
+                          ))}
                         <div className="flex justify-between text-muted-foreground">
                           <span>{getLabel(props.labels, 'totalVat', 'VAT:')}</span>
                           <span>

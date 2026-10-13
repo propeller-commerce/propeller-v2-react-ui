@@ -8,6 +8,30 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.31.0] - 2026-10-13
+
+### Fixed
+
+- **Quantity steppers moved the wrong way from an off-grid quantity.**
+  `AddToCart` and `CartItem` resolved the current quantity to the *nearest*
+  point on the `min + n*step` grid before stepping, so when the nearest point
+  lay in the opposite direction the button moved the quantity backwards. With
+  min 2 and step 3, "+" from 9 sent 8 and "-" from 10 sent 11. Both now use
+  core-ui's directional `incrementOrderableQuantity` /
+  `decrementOrderableQuantity`, which always move the way the button points.
+  Typed values still resolve to the nearest grid point on blur, which is
+  correct there.
+- **The purchase-authorization request detail showed totals that did not add
+  up.** The panel listed only "Total excl. VAT", VAT and "Total", while
+  `total.totalGross` already contains shipping and transaction costs — so an
+  approver saw a total higher than the lines above it with nothing to explain
+  the difference. It now renders the same breakdown as the cart and checkout:
+  subtotal, discount, transaction costs, shipping costs, total excl. VAT, the
+  per-level VAT rows and the grand total. Needs the `subtotal`, `discount`,
+  `transactionCosts`, `shippingCosts` and `vat` label keys.
+
+---
+
 ## [0.30.0] - 2026-10-06
 
 ### Added

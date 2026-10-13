@@ -24,7 +24,7 @@ import {
 import { useCart } from '../composables/react/useCart';
 import { useInfraProps } from '../composables/react/useInfraProps';
 import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
-import { getProductImageUrl, getProductSku, getLocalizedValue, resolveOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
+import { getProductImageUrl, getProductSku, getLocalizedValue, resolveOrderableQuantity, incrementOrderableQuantity, decrementOrderableQuantity } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice, formatSurcharge } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 import CartBonusItems from './CartBonusItems';
@@ -331,20 +331,15 @@ function AddToCart(rawProps: AddToCartProps) {
   }
   function increment(): void {
     setQuantityDraft(null);
-    // Snap first: incrementing an off-grid quantity would otherwise keep it
-    // off-grid forever. Only a quantity already on the grid moves a full step.
-    const snapped = snapQuantity(quantity);
-    setQuantity(snapped === quantity ? quantity + getStep(props.product) : snapped);
+    setQuantity(
+      incrementOrderableQuantity(quantity, getMinQuantity(props.product), getStep(props.product)),
+    );
   }
   function decrement(): void {
-    const min = getMinQuantity(props.product);
-    const step = getStep(props.product);
     setQuantityDraft(null);
-    const snapped = snapQuantity(quantity);
-    if (snapped !== quantity) { setQuantity(snapped); return; }
-    if (quantity - step >= min) {
-      setQuantity(quantity - step);
-    }
+    setQuantity(
+      decrementOrderableQuantity(quantity, getMinQuantity(props.product), getStep(props.product)),
+    );
   }
 
   /** Accept any keystroke; commit only what is valid, and snap on blur. */
