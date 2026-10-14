@@ -385,6 +385,8 @@ function SearchBar(rawProps: SearchBarProps) {
         <div className="propeller-search-bar__input-wrapper relative">
           <button
             type="submit"
+            aria-label={getLabel(props.labels, 'searchLabel', 'Search')}
+            title={getLabel(props.labels, 'searchLabel', 'Search')}
             className="propeller-search-bar__submit absolute left-3 top-1/2 transform -translate-y-1/2 p-0 bg-transparent border-none cursor-pointer"
           >
             <svg

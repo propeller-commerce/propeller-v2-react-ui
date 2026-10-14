@@ -8,6 +8,36 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.32.0] - 2026-10-14
+
+### Added
+
+- **Grid pagination renders links.** Page numbers and Previous/Next navigate to
+  a different URL, so they are anchors with a real `href` once the host supplies
+  the new `pageHref` prop — which is what gives the status-bar preview,
+  open-in-new-tab and copy-link-address, and what makes a screen reader announce
+  a link rather than a button. A plain left click still pages in the client, and
+  a modified or middle click falls through to the browser. Omitting `pageHref`
+  keeps the previous buttons, so existing callers are unchanged. The control is
+  now a labelled `nav` landmark containing a list, the current page carries
+  `aria-current="page"` instead of being disabled, `rel="prev"`/`rel="next"` mark
+  the adjacent entries, and an edge control that cannot act is omitted rather
+  than rendered disabled. `MachineGrid` forwards `pageHref` to its parts
+  pagination.
+- **`searchLabel` on the header search button.** The magnifier was icon-only
+  with no accessible name (PWP-1055).
+
+### Changed
+
+- **Downloads and Videos tabs appear only when the product has them.** Both
+  rendered unconditionally, so a product with no files showed a Downloads tab
+  reading "No downloads" and a Videos tab reading "No videos" (PWP-1061). They
+  now follow Description. The initial tab and the product-change fallback honour
+  the same rule, so a selected tab can no longer disappear and leave the panel
+  blank.
+- The middle-name field falls back to "Middle name" rather than the Dutch-derived
+  "Insertion" (PWP-1053).
+
 ## [0.31.0] - 2026-10-13
 
 ### Fixed

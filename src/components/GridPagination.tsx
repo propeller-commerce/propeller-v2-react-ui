@@ -8,6 +8,10 @@
 import * as React from 'react';
 import { ProductsResponse } from '@propeller-commerce/propeller-sdk-v2';
 import { cn } from '../composables/shared/utils/cn';
+import {
+  shouldHandlePaginationClick,
+  paginationRel,
+} from '@propeller-commerce/propeller-v2-core-ui';
 
 // Built-in label defaults (can be overridden via the labels prop).
 
@@ -24,6 +28,14 @@ export interface GridPaginationProps {
    * Receives the newly selected page number (1-based).
    */
   onPageChange: (page: number) => void;
+
+  /**
+   * URL for a given page. Supply it and the entries render as anchors, so the
+   * browser can preview the target, open it in a new tab and copy the link;
+   * a plain click is still handled in the client. Without it they stay
+   * buttons, which navigate on click only.
+   */
+  pageHref?: (page: number) => string;
 
   /**
    * Pagination display variant.
@@ -69,6 +81,8 @@ const DEFAULT_LABELS: Record<string, string> = {
   next: 'Next',
   page: 'Page',
   of: 'of',
+  // Names the <nav> landmark, so it is distinguishable from the site navigation.
+  paginationLabel: 'Pagination',
 };
 
 /**
@@ -151,48 +165,103 @@ function GridPagination(props: GridPaginationProps) {
     return items;
   }
   const handlePageChange = (page: number) => props.onPageChange?.(page);
+
+  const BTN_BASE =
+    'inline-flex items-center rounded-control border border-input bg-card text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover';
+  const PAGE_BASE =
+    'propeller-grid-pagination__page inline-flex items-center justify-center min-w-[2.25rem] rounded-control px-3 py-2 text-sm shadow-sm';
+
+  /**
+   * One pagination entry. An anchor when `pageHref` is supplied, a button
+   * otherwise; either way a plain click is handled here, while a modified or
+   * middle click is left to the browser.
+   */
+  function Entry(entry: {
+    page: number;
+    className: string;
+    children: React.ReactNode;
+    /** Only the Previous/Next controls carry rel — two elements claiming to be
+     *  the previous document would be wrong, and a numbered link is just a page. */
+    withRel?: boolean;
+    extraProps?: Record<string, unknown>;
+  }) {
+    const rel = entry.withRel ? paginationRel(entry.page, currentPage) : undefined;
+    const onClick = (event: React.MouseEvent) => {
+      if (!shouldHandlePaginationClick(event)) return;
+      event.preventDefault();
+      handlePageChange(entry.page);
+    };
+    const href = props.pageHref?.(entry.page);
+    if (href) {
+      return (
+        <a href={href} rel={rel} className={entry.className} onClick={onClick} {...entry.extraProps}>
+          {entry.children}
+        </a>
+      );
+    }
+    return (
+      <button type="button" className={entry.className} onClick={onClick} {...entry.extraProps}>
+        {entry.children}
+      </button>
+    );
+  }
+
   return (
-    <div
+    <nav
+      aria-label={getLabel('paginationLabel')}
       className={cn(`propeller-grid-pagination ${props.className || ''}`)}
       data-variant={variant}
     >
       {showPagination ? (
         <>
           {variant === 'compact' ? (
-            <div className="propeller-grid-pagination__compact flex justify-center items-center gap-2">
-              <button
-                type="button"
-                className="propeller-grid-pagination__btn propeller-grid-pagination__btn--prev inline-flex items-center rounded-control border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-              >
-                {getLabel('previous')}
-              </button>
-              <span className="propeller-grid-pagination__info px-2 text-sm font-medium text-muted-foreground">
-                {getLabel('page')}&nbsp;{currentPage}&nbsp;{getLabel('of')}&nbsp;{totalPages}
-              </span>
-              <button
-                type="button"
-                className="propeller-grid-pagination__btn propeller-grid-pagination__btn--next inline-flex items-center rounded-control border border-input bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-              >
-                {getLabel('next')}
-              </button>
-            </div>
+            <ul className="propeller-grid-pagination__compact flex justify-center items-center gap-2 list-none m-0 p-0">
+              {/* Omitted rather than disabled at the first page: a control
+                  that cannot act should not take up focus. */}
+              {currentPage > 1 ? (
+                <li className="inline-flex">
+                  <Entry
+                    page={currentPage - 1}
+                    withRel
+                    className={`propeller-grid-pagination__btn propeller-grid-pagination__btn--prev ${BTN_BASE} px-4 py-2`}
+                  >
+                    {getLabel('previous')}
+                  </Entry>
+                </li>
+              ) : null}
+              <li className="inline-flex">
+                <span className="propeller-grid-pagination__info px-2 text-sm font-medium text-muted-foreground">
+                  {getLabel('page')}&nbsp;{currentPage}&nbsp;{getLabel('of')}&nbsp;{totalPages}
+                </span>
+              </li>
+              {currentPage < totalPages ? (
+                <li className="inline-flex">
+                  <Entry
+                    page={currentPage + 1}
+                    withRel
+                    className={`propeller-grid-pagination__btn propeller-grid-pagination__btn--next ${BTN_BASE} px-4 py-2`}
+                  >
+                    {getLabel('next')}
+                  </Entry>
+                </li>
+              ) : null}
+            </ul>
           ) : null}
           {variant === 'full' ? (
-            <div className="propeller-grid-pagination__full flex justify-center items-center gap-1 flex-wrap">
-              <button
-                type="button"
-                className="propeller-grid-pagination__btn propeller-grid-pagination__btn--prev inline-flex items-center rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-              >
-                {getLabel('previous')}
-              </button>
+            <ul className="propeller-grid-pagination__full flex justify-center items-center gap-1 flex-wrap list-none m-0 p-0">
+              {currentPage > 1 ? (
+                <li className="inline-flex">
+                  <Entry
+                    page={currentPage - 1}
+                    withRel
+                    className={`propeller-grid-pagination__btn propeller-grid-pagination__btn--prev ${BTN_BASE} px-3 py-2`}
+                  >
+                    {getLabel('previous')}
+                  </Entry>
+                </li>
+              ) : null}
               {getFullPages().map((item, idx) => (
-                <div
+                <li
                   className="propeller-grid-pagination__page-wrapper inline-flex"
                   key={item.type === 'dots' ? `dots-${idx}` : `page-${item.value}`}
                 >
@@ -201,34 +270,41 @@ function GridPagination(props: GridPaginationProps) {
                       ...
                     </span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => handlePageChange(item.value)}
-                      data-active={item.value === currentPage ? 'true' : 'false'}
+                    // The current page stays a real link — it has a URL — and is
+                    // marked with aria-current rather than being disabled.
+                    <Entry
+                      page={item.value}
                       className={
                         item.value === currentPage
-                          ? 'propeller-grid-pagination__page inline-flex items-center justify-center min-w-[2.25rem] rounded-control border border-primary bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm'
-                          : 'propeller-grid-pagination__page inline-flex items-center justify-center min-w-[2.25rem] rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover'
+                          ? `${PAGE_BASE} border border-primary bg-primary font-semibold text-primary-foreground`
+                          : `${PAGE_BASE} border border-input bg-card font-medium text-foreground hover:bg-surface-hover`
                       }
+                      extraProps={{
+                        'data-active': item.value === currentPage ? 'true' : 'false',
+                        ...(item.value === currentPage ? { 'aria-current': 'page' } : {}),
+                      }}
                     >
                       {item.value}
-                    </button>
+                    </Entry>
                   )}
-                </div>
+                </li>
               ))}
-              <button
-                type="button"
-                className="propeller-grid-pagination__btn propeller-grid-pagination__btn--next inline-flex items-center rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-              >
-                {getLabel('next')}
-              </button>
-            </div>
+              {currentPage < totalPages ? (
+                <li className="inline-flex">
+                  <Entry
+                    page={currentPage + 1}
+                    withRel
+                    className={`propeller-grid-pagination__btn propeller-grid-pagination__btn--next ${BTN_BASE} px-3 py-2`}
+                  >
+                    {getLabel('next')}
+                  </Entry>
+                </li>
+              ) : null}
+            </ul>
           ) : null}
         </>
       ) : null}
-    </div>
+    </nav>
   );
 }
 

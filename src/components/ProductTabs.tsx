@@ -179,7 +179,9 @@ function ProductTabs(rawProps: ProductTabsProps) {
         || descs[0]?.value || '').length > 0;
     if (props.showDescription !== false && hasDesc) return 'description';
     if (props.showSpecifications !== false) return 'specifications';
-    if (props.showDownloads !== false) return 'downloads';
+    const media = (props.product as Product)?.media;
+    if (props.showDownloads !== false && (media?.documents?.items?.length || 0) > 0)
+      return 'downloads';
     return 'videos';
   })();
   const [activeTab, setActiveTab] = useState(() => initialTab);
@@ -198,11 +200,19 @@ function ProductTabs(rawProps: ProductTabsProps) {
     const match = descriptions.find((d) => d.language === lang);
     return !!(match?.value || descriptions[0]?.value);
   }
+  // A tab whose panel would only say "No downloads" is noise, so downloads and
+  // videos follow description: shown when the product actually has them.
+  function hasDownloads() {
+    return ((props.product as Product)?.media?.documents?.items?.length || 0) > 0;
+  }
+  function hasVideos() {
+    return ((props.product as Product)?.media?.videos?.items?.length || 0) > 0;
+  }
   function isTabVisible(tab: string) {
     if (tab === 'description') return props.showDescription !== false && hasDescription();
     if (tab === 'specifications') return props.showSpecifications !== false;
-    if (tab === 'downloads') return props.showDownloads !== false;
-    if (tab === 'videos') return props.showVideos !== false;
+    if (tab === 'downloads') return props.showDownloads !== false && hasDownloads();
+    if (tab === 'videos') return props.showVideos !== false && hasVideos();
     return false;
   }
   function isActive(tab: string) {
@@ -223,6 +233,15 @@ function ProductTabs(rawProps: ProductTabsProps) {
     if (props.showDescription !== false && hasDescription()) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveTab('description');
+      return;
+    }
+    // Falling back matters now that downloads/videos can disappear: a product
+    // without them would otherwise leave the selected tab hidden and the panel
+    // area blank.
+    if (!isTabVisible(activeTab)) {
+      const next = ['description', 'specifications', 'downloads', 'videos'].find(isTabVisible);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (next) setActiveTab(next);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.product, props.language]);

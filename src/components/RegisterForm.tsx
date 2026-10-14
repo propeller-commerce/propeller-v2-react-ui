@@ -179,7 +179,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
   const sameAsDeliveryLabel =
     props.labels?.sameAsDelivery || 'Delivery address is the same as billing address';
   const firstNameLabel = props.labels?.firstName || 'First name';
-  const middleNameLabel = props.labels?.middleName || 'Insertion';
+  const middleNameLabel = props.labels?.middleName || 'Middle name';
   const lastNameLabel = props.labels?.lastName || 'Last name';
   const emailLabel = props.labels?.email || 'Email address';
   const passwordLabel = props.labels?.password || 'Password';
