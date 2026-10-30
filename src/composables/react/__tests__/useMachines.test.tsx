@@ -68,3 +68,10 @@ describe('useMachines — idle', () => {
     expect(client.execute).not.toHaveBeenCalled();
   });
 });
+
+describe('useMachines — first render', () => {
+  it('reports loading before the first fetch when it is about to fetch', () => {
+    const html = renderToString(<Probe source="ACME" sourceIds={['M-1']} client={{ execute: vi.fn() }} />);
+    expect(html).toContain('0|true');
+  });
+});

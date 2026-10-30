@@ -8,8 +8,8 @@ title: Server Components
 
 | Import path                    | Contents                                              | Runtime          |
 | ------------------------------ | ----------------------------------------------------- | ---------------- |
-| `propeller-v2-react-ui`        | Components, hooks, contexts, `createServices`, `toPlain` | Client           |
-| `propeller-v2-react-ui/shared` | `createServices`, `toPlain`, formatters, helpers, types | Server & Client  |
+| `@propeller-commerce/propeller-v2-react-ui`        | Components, hooks, contexts, `createServices`, `toPlain` | Client           |
+| `@propeller-commerce/propeller-v2-react-ui/shared` | `createServices`, `toPlain`, formatters, helpers, types | Server & Client  |
 
 The main entry carries a `"use client"` directive — it bundles
 interactive components, so importing it into a Server Component pulls
@@ -27,8 +27,8 @@ a small module in your own app:
 // lib/server.ts — in YOUR app
 import 'server-only';
 import { cookies } from 'next/headers';
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices, toPlain } from 'propeller-v2-react-ui/shared';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices, toPlain } from '@propeller-commerce/propeller-v2-react-ui/shared';
 
 export function createServerClient() {
   return new GraphQLClient({

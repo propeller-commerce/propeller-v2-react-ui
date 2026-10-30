@@ -95,7 +95,7 @@ export interface MachineGridProps {
    * A slug resolves only in its own language, so a half-translated tree lists a
    * machine by its NL slug and then cannot open it with `language: 'EN'`. Pass
    * the shop's locales here; `machineLanguage` and the storefront `language`
-   * are always tried first (PWP-993).
+   * are always tried first.
    */
   machineLanguages?: string[];
 
@@ -107,6 +107,14 @@ export interface MachineGridProps {
    * renders anchors when it is supplied; the host owns the URL shape.
    */
   pageHref?: (page: number) => string;
+  /** Pager style for the parts list, as on `GridPagination`. Defaults to `'compact'`. */
+  paginationVariant?: 'compact' | 'full';
+
+  // ── View mode (parts) ────────────────────────────────────────────────────
+  /** View mode the parts list opens in. Defaults to `'list'`. */
+  defaultViewMode?: 'grid' | 'list';
+  /** Fired when the user switches view mode, so the host can remember it. */
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
 
   // ── Infra (resolved via useInfraProps; explicit wins) ────────────────────
   graphqlClient?: GraphQLClient;
@@ -139,7 +147,7 @@ export interface MachineGridProps {
    * Custom card for the PARTS list, forwarded to the inner ProductGrid. Without
    * it a product rendered with the host's custom card on a normal listing and
    * with the stock card here, so the same product looked different depending on
-   * the page it was reached from (PWP-995c).
+   * the page it was reached from.
    */
   productCardComponent?: React.ComponentType<import('./ProductCard').ProductCardProps>;
 
@@ -158,7 +166,7 @@ export interface MachineGridProps {
    * `quantityInMachine` and `searchParts` used to be read from `toolbarLabels`,
    * which is forwarded verbatim to `GridToolbar`: a shop that translated its
    * toolbar dictionary properly still got "Qty in machine" and "Search parts…"
-   * in English, because those keys belong to no toolbar (PWP-995a). They are
+   * in English, because those keys belong to no toolbar. They are
    * still read from `toolbarLabels` as a fallback so existing hosts keep
    * working.
    */
@@ -170,8 +178,7 @@ export interface MachineGridProps {
    *
    * MachineGrid used to forward none of these and expose no way to reach them,
    * so a translated storefront rendered "In stock", "Add" and "Search parts…"
-   * in English in the middle of its own copy. A monolingual shop never noticed
-   * (PWP-995a).
+   * in English in the middle of its own copy. A monolingual shop never noticed.
    */
   productCardLabels?: Record<string, string>;
   addToCartLabels?: Record<string, string>;
@@ -184,6 +191,26 @@ export interface MachineGridProps {
 
 const SORT_FIELD_DEFAULT: ProductSortField = ProductSortField.NAME;
 const SORT_ORDER_DEFAULT: SortOrder = SortOrder.ASC;
+
+/** Most skeleton cards on the root page; more would not fit above the fold anyway. */
+const MAX_ROOT_SKELETONS = 8;
+
+/** Placeholder with the shape of a `MachineCard`, using ProductGrid's skeleton styling. */
+function MachineCardSkeleton() {
+  return (
+    <div
+      aria-hidden="true"
+      className="propeller-machine-card-skeleton flex h-full flex-col overflow-hidden rounded-lg border border-border bg-background"
+    >
+      <div className="propeller-machine-card-skeleton__image aspect-square w-full bg-surface-hover animate-pulse" />
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        <div className="propeller-machine-card-skeleton__line h-4 w-3/4 rounded bg-surface-hover animate-pulse" />
+        <div className="propeller-machine-card-skeleton__line h-3 w-1/2 rounded bg-surface-hover animate-pulse" />
+        <div className="propeller-machine-card-skeleton__line mt-auto h-10 w-full rounded bg-surface-hover animate-pulse" />
+      </div>
+    </div>
+  );
+}
 
 /** Title-case a URL slug for a breadcrumb ancestor (no fetched name available). */
 function slugToLabel(slug: string): string {
@@ -205,7 +232,11 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   const machineLanguage = rawProps.machineLanguage ?? 'EN';
   const language = props.language ?? 'NL';
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(rawProps.defaultViewMode ?? 'list');
+  const changeViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    rawProps.onViewModeChange?.(mode);
+  };
   const [clearSignal, setClearSignal] = useState(0);
 
   // Facets / bounds / the fetched node arrive from the parts hook.
@@ -213,7 +244,9 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   const [priceBoundsMin, setPriceBoundsMin] = useState<number | undefined>();
   const [priceBoundsMax, setPriceBoundsMax] = useState<number | undefined>();
   const [itemsFound, setItemsFound] = useState(0);
-  const [machine, setMachine] = useState<SparePartsMachine | undefined>();
+  // Tagged with its slug, so a previous machine's name never shows on the next one.
+  const [loadedMachine, setLoadedMachine] = useState<{ slug: string; machine: SparePartsMachine }>();
+  const machine = loadedMachine?.slug === currentSlug ? loadedMachine.machine : undefined;
 
   const { filters, minPrice, maxPrice, offset, sortField, sortOrder, term } = listing;
 
@@ -262,7 +295,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
       pageSize: offset,
       // The hook takes the controlled page directly now. It used to own its own
       // counter, so the only way to drive it from URL state was the effect
-      // below — undiscoverable unless you read this file (PWP-995b).
+      // below — undiscoverable unless you read this file.
       page: listing.page,
       configuration: rawProps.configuration ?? (props.configuration as never),
       onFiltersChange: setGridFilters,
@@ -271,14 +304,14 @@ export default function MachineGrid(rawProps: MachineGridProps) {
         setPriceBoundsMax(max);
       },
       onItemsFoundChange: setItemsFound,
-      onMachineChange: setMachine,
+      onMachineChange: (m) => setLoadedMachine({ slug: currentSlug, machine: m }),
     });
 
   const machineName = machine ? getLocalizedValue(machine.name, machineLanguage) : slugToLabel(currentSlug);
 
   /**
    * The grid's own strings. `machineCardLabels` first, then `toolbarLabels` for
-   * hosts that already put them there, then English (PWP-995a).
+   * hosts that already put them there, then English.
    */
   const machineLabel = (key: string, fallback: string): string =>
     rawProps.machineCardLabels?.[key] ?? rawProps.toolbarLabels?.[key] ?? fallback;
@@ -371,7 +404,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
   // `undefined` when the machine has no slug in ANY language — it genuinely has
   // no URL, so the card renders unlinked rather than vanishing. getLocalizedValue
   // already falls back across languages; the queries feeding it no longer narrow
-  // to one (PWP-993).
+  // to one.
   const childSlugHref = (child: SparePartsMachine): string | undefined => {
     const slug = getLocalizedValue(child.slug, machineLanguage);
     return slug ? `${currentPath}/${slug}` : undefined;
@@ -387,9 +420,21 @@ export default function MachineGrid(rawProps: MachineGridProps) {
           {rawProps.rootTitle ?? 'Machines'}
         </h1>
         {rootLoading ? (
-          <p className="py-12 text-center text-foreground-subtle">
-            {getLabel(rawProps.machineCardLabels, 'loading', 'Loading…')}
-          </p>
+          <>
+            <p role="status" className="sr-only">
+              {getLabel(rawProps.machineCardLabels, 'loading', 'Loading…')}
+            </p>
+            <div
+              aria-busy="true"
+              data-loading="true"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            >
+              {Array.from(
+                { length: Math.min(rawProps.sourceIds?.length ?? 0, MAX_ROOT_SKELETONS) },
+                (_, i) => <MachineCardSkeleton key={i} />
+              )}
+            </div>
+          </>
         ) : cards.length === 0 ? (
           <p className="py-12 text-center text-foreground-subtle">
             {getLabel(rawProps.machineCardLabels, 'noMachines', 'No machines found.')}
@@ -413,11 +458,22 @@ export default function MachineGrid(rawProps: MachineGridProps) {
 
   // ── Node render ─────────────────────────────────────────────────────────────
   const hasParts = itemsFound > 0 || partProducts.length > 0;
+  // First load of this machine: nothing of it is known yet.
+  const firstLoad = partsLoading && !machine && !notFound;
+  // A filter or search with no hits keeps the controls, so the user can undo it.
+  const hasActiveListing =
+    !!term || Object.keys(filters).length > 0 || minPrice !== undefined || maxPrice !== undefined;
+  const showParts = hasParts || partsLoading || hasActiveListing;
+  const titleSkeleton = (
+    <span
+      aria-hidden="true"
+      className="propeller-machine-title-skeleton inline-block h-[1em] w-48 max-w-full rounded bg-surface-hover align-middle animate-pulse"
+    />
+  );
 
   // The slug resolved in no language we know of. Without this the page rendered
   // a title title-cased from the URL above an empty parts list and no error, so
-  // a machine that could not be opened looked exactly like one with no parts
-  // (PWP-993).
+  // a machine that could not be opened looked exactly like one with no parts.
   if (notFound && !partsLoading) {
     return (
       <div className={rawProps.className}>
@@ -457,7 +513,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
                 <span aria-hidden="true">/</span>
                 {isLast ? (
                   <span aria-current="page" className="text-foreground">
-                    {label}
+                    {firstLoad ? titleSkeleton : label}
                   </span>
                 ) : (
                   <a href={href} className="hover:text-primary">
@@ -470,11 +526,30 @@ export default function MachineGrid(rawProps: MachineGridProps) {
         </ol>
       </nav>
 
-      <h1 className="propeller-grid-title mb-6 text-2xl font-semibold">{machineName}</h1>
+      <h1 className="propeller-grid-title mb-6 text-2xl font-semibold">
+        {firstLoad ? (
+          <>
+            <span className="sr-only">{machineLabel('loading', 'Loading…')}</span>
+            {titleSkeleton}
+          </>
+        ) : (
+          machineName
+        )}
+      </h1>
 
       {/* Child machines — their own section above the parts. A node with zero
           parts still shows its children. */}
-      {childMachines.length > 0 && (
+      {firstLoad ? (
+        <div
+          aria-busy="true"
+          data-loading="true"
+          className="propeller-machine-children propeller-machine-children--loading mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
+          {Array.from({ length: 4 }, (_, i) => (
+            <MachineCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : childMachines.length > 0 && (
         <div className="propeller-machine-children mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {childMachines.map((child) => {
             const href = childSlugHref(child);
@@ -491,7 +566,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
         </div>
       )}
 
-      {hasParts && (
+      {showParts && (
         <div className="flex flex-col gap-8 lg:flex-row">
           <GridFiltersPanel
             filters={gridFilters}
@@ -532,7 +607,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
                 onSortChange={(field, order) => handleSortChange(field, order as 'ASC' | 'DESC')}
                 onOffsetChange={handleOffsetChange}
                 viewMode={viewMode}
-                onViewChange={(mode) => setViewMode(mode as 'grid' | 'list')}
+                onViewChange={(mode) => changeViewMode(mode as 'grid' | 'list')}
                 onFilterRemove={handleFilterRemove}
                 onPriceFilterRemove={() => handlePriceRangeChange(undefined, undefined)}
                 onClearFilters={clearAllFilters}
@@ -577,6 +652,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
                 products={{ page: currentPage, pages: totalPages }}
                 onPageChange={handlePageChange}
                 pageHref={rawProps.pageHref}
+                variant={rawProps.paginationVariant ?? 'compact'}
                 labels={rawProps.paginationLabels}
               />
             </div>

@@ -23,17 +23,18 @@ library would lock it to one app shape. So the package doesn't.
 
 ## The contract: three steps
 
-1. **You construct the `GraphQLClient`** from `propeller-sdk-v2`, with
+1. **You construct the `GraphQLClient`** from `@propeller-commerce/propeller-sdk-v2`, with
    your endpoint, headers and auth resolver.
 2. **You call `createServices(client)`** once — it returns a typed
    `Services` bundle (`product`, `cart`, `user`, `order`, …) keyed to
    that client.
 3. **You pass both** `graphqlClient` and `services` into
-   `<PropellerProvider>`.
+   `<PropellerDepsProvider>` (with the per-scope state in a nested
+   `<PropellerProvider>`).
 
 ```tsx
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices } from 'propeller-v2-react-ui';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices } from '@propeller-commerce/propeller-v2-react-ui';
 
 const graphqlClient = new GraphQLClient({ endpoint: '/api/graphql', apiKey: '' });
 const services = createServices(graphqlClient);
@@ -64,6 +65,6 @@ The package used to have a `/server` entry. It was removed — server-side
 wiring (endpoint, API keys, cookie names, auth) is just as
 application-specific as the client. If you fetch Propeller data in a
 Server Component, host that code in your own app; `createServices` is
-exported from `propeller-v2-react-ui/shared` so you can build a bundle
+exported from `@propeller-commerce/propeller-v2-react-ui/shared` so you can build a bundle
 around a server-side client without pulling the client bundle into the
 server graph. See [Server Components](/server-components).

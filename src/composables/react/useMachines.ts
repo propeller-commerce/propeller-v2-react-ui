@@ -116,7 +116,8 @@ export function useMachines(options: UseMachinesOptions): UseMachinesReturn {
   const idsKey = sourceIds.join(',');
 
   const [machines, setMachines] = useState<SparePartsMachine[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Start loading when a fetch will run, so the first render is not an empty state.
+  const [isLoading, setIsLoading] = useState(() => !!graphqlClient && !!source && sourceIds.length > 0);
 
   /** Per-instance guard: only the newest fetch commits. Mirrors `useSpareParts`. */
   const fetchIdRef = useRef(0);

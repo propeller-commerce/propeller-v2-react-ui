@@ -19,6 +19,10 @@ const toPosix = (p) => p.replace(/\\/g, '/');
 
 const docsDir = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(docsDir, '..');
+// Public GitHub mirror from package.json `repository`.
+const repoUrl = require(path.join(repoRoot, 'package.json')).repository.url
+  .replace(/^git\+/, '')
+  .replace(/\.git$/, '');
 
 // Single entry point: src/index.ts. The package's other public entry,
 // src/shared.ts, is a strict SUBSET of index.ts (createServices, toPlain, the
@@ -59,7 +63,7 @@ const args = [
   '--excludePrivate',
   '--sanitizeComments',
   '--sourceLinkTemplate',
-  'https://gitlab.com/propellor-eu/cloud/frontend/ui/propeller-v2-react-ui/-/blob/{gitRevision}/{path}#L{line}',
+  `${repoUrl}/blob/{gitRevision}/{path}#L{line}`,
   '--gitRevision', 'master',
 ];
 

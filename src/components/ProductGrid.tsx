@@ -487,6 +487,7 @@ function ProductGrid(rawProps: ProductGridProps) {
           <div
             className={cn(`propeller-product-grid w-full ${(props.className as string) || ''}`)}
             data-loading={getIsLoading() ? 'true' : 'false'}
+            aria-busy={getIsLoading() || undefined}
             data-mode="compound"
           >
             {rawProps.children}
@@ -501,6 +502,7 @@ function ProductGrid(rawProps: ProductGridProps) {
     <div
       className={cn(`propeller-product-grid w-full ${(props.className as string) || ''}`)}
       data-loading={getIsLoading() ? 'true' : 'false'}
+      aria-busy={getIsLoading() || undefined}
     >
       {getIsLoading() ? (
         <div className={`propeller-product-grid__skeleton-grid ${getGridColsClass()}`}>

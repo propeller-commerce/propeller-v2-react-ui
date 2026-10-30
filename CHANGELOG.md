@@ -8,6 +8,71 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.33.0] - 2026-10-30
+
+### Added
+
+- **`MachineGrid` view mode and pager props.** `defaultViewMode` (`'grid'` or
+  `'list'`, default `'list'`) sets how the parts list opens, and
+  `onViewModeChange` reports each switch so a shop can remember it.
+  `paginationVariant` (`'compact'` or `'full'`, default `'compact'`) is
+  forwarded to the parts pagination, so a machine page can use the same numbered
+  pager as the category pages. Leaving them out keeps today's behaviour.
+- **`ProductGrid` sets `aria-busy` while loading**, next to `data-loading`.
+- **`useProductSearch` returns `searchError` (PWP-1074).** It is `true` when
+  the latest search-bar request failed, as opposed to finding nothing. It
+  clears when a new search starts, and a search that a newer one replaced can
+  no longer overwrite its results or error. Failures are logged to the console.
+- **`PriceRequestList` has an anti-spam honeypot field.** A visually hidden
+  `website` input (positioned off-screen, `tabIndex={-1}`, `aria-hidden`,
+  class hook `propeller-price-request__honeypot`, label key `honeypotLabel`)
+  sits in the form. Its value reaches the host as a new trailing argument:
+  `onSubmit(comment, { website })` on the component, `submit(comment, extras?)`
+  and `onSubmit(items, comment, extras)` on `usePriceRequest`. People leave it
+  empty; a non-empty value means a bot. New exported type
+  `PriceRequestSubmitExtras`. Hosts that ignore the argument keep working.
+
+### Changed
+
+- **`MachineGrid` shows skeletons while loading.** The root page shows one
+  skeleton card per installation (at most 8) in the card grid instead of a
+  centred "Loading…" line; the label stays as screen-reader status text. On a
+  machine page the filters, search, toolbar and parts list render during the
+  first load, so the parts skeleton shows in the active view mode; child
+  machines get a row of skeleton cards, and the title and last breadcrumb a
+  text bar instead of the label made from the URL slug. Loading areas carry
+  `aria-busy`. The parts area is hidden only after loading finishes with no
+  parts.
+- **Docs: the provider setup now works as written (PWP-1086).** README,
+  MIGRATION, TECH and the docs site passed `graphqlClient` and `services` to
+  `PropellerProvider`, which only takes the per-scope state, so `useServices()`
+  threw. Every snippet now wraps `PropellerProvider` in `PropellerDepsProvider`,
+  which takes `graphqlClient`, `services`, `currency` and `configuration`, and
+  the getting-started page explains both.
+- **Docs: package names are scoped (PWP-1087).** Install commands, imports and
+  code snippets now use `@propeller-commerce/propeller-v2-react-ui`,
+  `@propeller-commerce/propeller-sdk-v2` and
+  `@propeller-commerce/propeller-v2-core-ui`.
+- **Docs: source and repository links point at GitHub (PWP-1088).** The API
+  reference's source links and the docs site's repository links went to a
+  GitLab project that asks for a sign-in; they now go to
+  github.com/propeller-commerce/propeller-v2-react-ui (`master`).
+
+### Fixed
+
+- **`MachineGrid` flashed its empty state before the first fetch.**
+  `useMachines` and `useSpareParts` now report `isLoading` from the first
+  render when they are about to fetch, so "No machines found." and an empty
+  machine page no longer appear before the data; `useSpareParts` also reports loading after the slug changes until the new machine has loaded.
+- **A search or filter with no matching parts removed the parts controls**, so
+  the search box and filters could not be used to undo it. They now stay while
+  a search, filter or price range is active.
+- **The previous machine's name could show on the next machine page.** The
+  fetched machine is now tied to the slug it was fetched for.
+- **`SearchBar` said "No products found" when the search failed (PWP-1074).**
+  A failed search request now shows the new `searchError` label ("Search is
+  unavailable right now. Please try again.") instead of the no-results text.
+
 ## [0.32.0] - 2026-10-14
 
 ### Added

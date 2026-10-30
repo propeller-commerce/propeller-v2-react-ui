@@ -16,6 +16,7 @@ import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 import { isPriceOnRequest } from '../composables/shared/utils/priceOnRequest';
+import { searchEmptyMessage } from '../composables/shared/utils/searchStatus';
 import { PropellerImg } from './PropellerImg';
 import { useImgComponent } from '../context/PropellerContext';
 
@@ -119,7 +120,10 @@ export interface SearchBarProps {
   /** Currency symbol for prices. Resolved from PropellerProvider when omitted; defaults to '€'. */
   currency?: string;
 
-  /** Labels for the component */
+  /**
+   * Labels for the component. Keys: `searchLabel`, `placeholder`, `viewAll`,
+   * `noResults`, `searchError` (shown when the search request fails).
+   */
   labels?: Record<string, string>;
 
   /**
@@ -246,7 +250,7 @@ function SearchBar(rawProps: SearchBarProps) {
   const minLength = props.minSearchLength !== undefined ? props.minSearchLength : 3;
   const maxResults = props.maxResults !== undefined ? props.maxResults : 8;
 
-  const { search, searchResults, searchItemsFound, searchLoading } = useProductSearch({
+  const { search, searchResults, searchItemsFound, searchLoading, searchError } = useProductSearch({
     graphqlClient: props.graphqlClient,
     language: props.language,
     configuration: props.configuration || {},
@@ -503,8 +507,11 @@ function SearchBar(rawProps: SearchBarProps) {
             </>
           ) : null}
           {results.length === 0 && localTerm.length >= minLength && !searchLoading ? (
-            <div className="propeller-search-bar__empty p-4 text-center text-muted-foreground">
-              {getLabel(props.labels, 'noResults', 'No products found for')} &quot;{localTerm}&quot;
+            <div
+              className={cn('propeller-search-bar__empty p-4 text-center text-muted-foreground', searchError && 'propeller-search-bar__error')}
+              role={searchError ? 'alert' : undefined}
+            >
+              {searchEmptyMessage(props.labels, searchError, localTerm)}
             </div>
           ) : null}
         </div>

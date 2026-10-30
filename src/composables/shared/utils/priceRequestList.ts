@@ -26,6 +26,12 @@ export interface PriceRequestItem {
   unit: number;
 }
 
+/** Extra form fields sent with a request, next to the items and comment. */
+export interface PriceRequestSubmitExtras {
+  /** Honeypot value: empty for people, filled by bots. */
+  website?: string;
+}
+
 /** Is this product already on the list? Identity is the SKU, as in the form. */
 export function containsItem(list: PriceRequestItem[], code: string): boolean {
   return list.some((i) => i.code === code);

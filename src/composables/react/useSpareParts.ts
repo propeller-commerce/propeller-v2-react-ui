@@ -202,6 +202,8 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
   const [childMachines, setChildMachines] = useState<SparePartsMachine[]>([]);
   const [itemsFound, setItemsFound] = useState(0);
   const [internalLoading, setInternalLoading] = useState(false);
+  /** The slug whose latest fetch finished; any other slug still counts as loading. */
+  const [settledSlug, setSettledSlug] = useState<string | undefined>();
   const [internalPage, setInternalPage] = useState(1);
   const [notFound, setNotFound] = useState(false);
   /** Content key so a new-but-equal array doesn't retrigger the fetch. */
@@ -218,7 +220,9 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
     [isControlled, options.parts, internalParts]
   );
 
-  const isLoading = !isControlled && internalLoading;
+  const isLoading =
+    !isControlled &&
+    (internalLoading || (!!graphqlClient && !!options.slug && settledSlug !== options.slug));
 
   const userId = resolveListingUserId(options.user, options.configuration);
 
@@ -384,7 +388,10 @@ export function useSpareParts(options: UseSparePartsOptions): UseSparePartsRetur
       if (thisId === fetchIdRef.current) setInternalParts([]);
     } finally {
       inflightFetches.delete(inflightKey);
-      if (thisId === fetchIdRef.current) setInternalLoading(false);
+      if (thisId === fetchIdRef.current) {
+        setInternalLoading(false);
+        setSettledSlug(options.slug);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

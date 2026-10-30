@@ -64,3 +64,10 @@ describe('useSpareParts — controlled mode', () => {
     expect(html).toContain('|false');
   });
 });
+
+describe('useSpareParts — first render', () => {
+  it('reports loading before the first fetch when it has a client and a slug', () => {
+    const html = renderToString(<Probe client={{ execute: vi.fn() }} />);
+    expect(html).toContain('|true');
+  });
+});

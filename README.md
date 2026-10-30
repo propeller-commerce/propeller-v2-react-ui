@@ -37,14 +37,14 @@ use it.
 ## Installation
 
 ```bash
-npm install propeller-v2-react-ui propeller-sdk-v2
+npm install @propeller-commerce/propeller-v2-react-ui @propeller-commerce/propeller-sdk-v2
 # or
-pnpm add propeller-v2-react-ui propeller-sdk-v2
+pnpm add @propeller-commerce/propeller-v2-react-ui @propeller-commerce/propeller-sdk-v2
 # or
-yarn add propeller-v2-react-ui propeller-sdk-v2
+yarn add @propeller-commerce/propeller-v2-react-ui @propeller-commerce/propeller-sdk-v2
 ```
 
-`propeller-sdk-v2` is a peer dependency — install it yourself so the package
+`@propeller-commerce/propeller-sdk-v2` is a peer dependency — install it yourself so the package
 and your application share a single SDK instance.
 
 ## Peer dependencies
@@ -53,7 +53,7 @@ and your application share a single SDK instance.
 | ------------------ | ---------- | ----------------------------------------- |
 | `react`            | `>=18`     | Yes                                       |
 | `react-dom`        | `>=18`     | Yes                                       |
-| `propeller-sdk-v2` | `*`        | Yes — provides the GraphQL client & types |
+| `@propeller-commerce/propeller-sdk-v2` | `*`        | Yes — provides the GraphQL client & types |
 
 There is **no dependency on Next.js**. Next.js apps work out of the box, but
 nothing in the package imports `next/*`.
@@ -66,28 +66,28 @@ The package exposes four import paths — three code entries and the stylesheet:
 // 1. Main entry — React components, hooks, contexts.
 //    The bundle is marked "use client", so in Next.js every re-export is a
 //    Client Component and the boundary is drawn automatically.
-import { PropellerProvider, ProductCard, useCart } from 'propeller-v2-react-ui';
+import { PropellerProvider, ProductCard, useCart } from '@propeller-commerce/propeller-v2-react-ui';
 
 // 2. Pure entry — the RSC-safe presentational components ONLY.
 //    Built WITHOUT the "use client" banner, so a Server Component can
 //    render these directly without drawing a client boundary.
-import { ProductPrice, ItemStock, Breadcrumbs } from 'propeller-v2-react-ui/pure';
+import { ProductPrice, ItemStock, Breadcrumbs } from '@propeller-commerce/propeller-v2-react-ui/pure';
 
 // 3. Shared entry — pure, runtime-agnostic TS. No React, no "use client".
 //    Safe to import from a Server Component OR a Client Component.
 //    Contains createServices, toPlain, formatters, helpers and all types.
-import { createServices, formatPrice, getLanguageString } from 'propeller-v2-react-ui/shared';
+import { createServices, formatPrice, getLanguageString } from '@propeller-commerce/propeller-v2-react-ui/shared';
 
 // 4. Stylesheet — precompiled CSS, import once at your app root.
-import 'propeller-v2-react-ui/styles.css';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 ```
 
 | Import path                        | Contents                                                       | Runtime         |
 | ----------------------------------- | -------------------------------------------------------------- | --------------- |
-| `propeller-v2-react-ui`            | Components, hooks, contexts, `createServices`, `toPlain`, types | Client only     |
-| `propeller-v2-react-ui/pure`       | The pure/presentational components only (RSC-safe)              | Server & Client |
-| `propeller-v2-react-ui/shared`     | `createServices`, `toPlain`, formatters, helpers, types         | Server & Client |
-| `propeller-v2-react-ui/styles.css` | Precompiled stylesheet                                          | —               |
+| `@propeller-commerce/propeller-v2-react-ui`            | Components, hooks, contexts, `createServices`, `toPlain`, types | Client only     |
+| `@propeller-commerce/propeller-v2-react-ui/pure`       | The pure/presentational components only (RSC-safe)              | Server & Client |
+| `@propeller-commerce/propeller-v2-react-ui/shared`     | `createServices`, `toPlain`, formatters, helpers, types         | Server & Client |
+| `@propeller-commerce/propeller-v2-react-ui/styles.css` | Precompiled stylesheet                                          | —               |
 
 > **Why three code entries?** In Next.js App Router, the main entry carries a
 > `"use client"` directive (it bundles interactive components), so importing
@@ -112,7 +112,7 @@ so a React Server Component can import and render them directly:
 `ProductDownloads`, `ProductPrice`, `ProductShortDescription`,
 `ProductVideos`.
 
-The same component is also available from the main `propeller-v2-react-ui`
+The same component is also available from the main `@propeller-commerce/propeller-v2-react-ui`
 entry — use that inside a `"use client"` boundary, and `/pure` from a Server
 Component.
 
@@ -131,19 +131,22 @@ to one app shape.
 
 Instead, **you** own the client. The contract is three steps:
 
-1. Construct a `GraphQLClient` from `propeller-sdk-v2` with your endpoint,
+1. Construct a `GraphQLClient` from `@propeller-commerce/propeller-sdk-v2` with your endpoint,
    headers and auth resolver.
 2. Call `createServices(client)` once to build a `Services` bundle — a typed
    object of all SDK services (`product`, `cart`, `user`, `order`, …) keyed
    to that client.
-3. Pass **both** `graphqlClient` and `services` into `<PropellerProvider>`.
+3. Pass **both** `graphqlClient` and `services` (plus `currency` and
+   `configuration`) into `<PropellerDepsProvider>` once at the app root, and
+   the per-scope state (`user`, `companyId`, `language`, …) into
+   `<PropellerProvider>` inside it.
 
-Everything inside the provider then reads services via `useServices()`; no
+Everything inside the providers then reads services via `useServices()`; no
 component or hook ever instantiates the SDK itself.
 
 ```ts
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices } from 'propeller-v2-react-ui';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices } from '@propeller-commerce/propeller-v2-react-ui';
 
 export const graphqlClient = new GraphQLClient({
   endpoint: '/api/graphql',           // your endpoint or proxy route
@@ -168,8 +171,8 @@ Create a single shared module so the client is constructed once.
 
 ```ts
 // lib/propeller.ts
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices } from 'propeller-v2-react-ui';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices } from '@propeller-commerce/propeller-v2-react-ui';
 
 export const graphqlClient = new GraphQLClient({
   endpoint: '/api/graphql',
@@ -180,16 +183,25 @@ export const services = createServices(graphqlClient);
 
 ### 2. Add a providers component
 
-`PropellerProvider` reads a `value` object — the `PropellerInfra` shape. Wire
-in your own auth / company / language / price state.
+Two providers, nested. `PropellerDepsProvider` takes the app-wide
+dependencies (`PropellerDeps`) and is mounted once; `PropellerProvider` takes
+the per-scope state (`PropellerScope`) — wire in your own auth / company /
+language / price state.
 
 ```tsx
 // app/providers.tsx
 'use client';
 
 import { useMemo, type ReactNode } from 'react';
-import { PropellerProvider, type PropellerInfra } from 'propeller-v2-react-ui';
+import {
+  PropellerDepsProvider,
+  PropellerProvider,
+  type PropellerDeps,
+  type PropellerScope,
+} from '@propeller-commerce/propeller-v2-react-ui';
 import { graphqlClient, services } from '@/lib/propeller';
+
+const deps: PropellerDeps = { graphqlClient, services, currency: '€', configuration: {} };
 
 export function Providers({ children }: { children: ReactNode }) {
   // Replace these with your real auth/company/language stores.
@@ -198,22 +210,16 @@ export function Providers({ children }: { children: ReactNode }) {
   const language = 'NL';
   const includeTax = false;
 
-  const value = useMemo<PropellerInfra>(
-    () => ({
-      graphqlClient,
-      services,
-      user,
-      companyId,
-      language,
-      includeTax,
-      currency: '€',
-      configuration: {},
-      portalMode: 'open',
-    }),
+  const scope = useMemo<PropellerScope>(
+    () => ({ user, companyId, language, includeTax, portalMode: 'open' }),
     [user, companyId, language, includeTax],
   );
 
-  return <PropellerProvider value={value}>{children}</PropellerProvider>;
+  return (
+    <PropellerDepsProvider value={deps}>
+      <PropellerProvider value={scope}>{children}</PropellerProvider>
+    </PropellerDepsProvider>
+  );
 }
 ```
 
@@ -221,7 +227,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
 ```tsx
 // app/layout.tsx
-import 'propeller-v2-react-ui/styles.css';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 import { Providers } from './providers';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -241,7 +247,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 // app/cart/page.tsx
 'use client';
 
-import { CartOverview } from 'propeller-v2-react-ui';
+import { CartOverview } from '@propeller-commerce/propeller-v2-react-ui';
 
 export default function CartPage() {
   return <CartOverview />;
@@ -258,9 +264,14 @@ the main entry directly.
 ```tsx
 // main.tsx
 import { createRoot } from 'react-dom/client';
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { PropellerProvider, createServices, type PropellerInfra } from 'propeller-v2-react-ui';
-import 'propeller-v2-react-ui/styles.css';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import {
+  PropellerDepsProvider,
+  PropellerProvider,
+  createServices,
+  type PropellerScope,
+} from '@propeller-commerce/propeller-v2-react-ui';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 import App from './App';
 
 const graphqlClient = new GraphQLClient({
@@ -268,22 +279,20 @@ const graphqlClient = new GraphQLClient({
 });
 const services = createServices(graphqlClient);
 
-const value: PropellerInfra = {
-  graphqlClient,
-  services,
+const scope: PropellerScope = {
   user: null,
   companyId: undefined,
   language: 'NL',
   includeTax: false,
-  currency: '€',
-  configuration: {},
   portalMode: 'open',
 };
 
 createRoot(document.getElementById('root')!).render(
-  <PropellerProvider value={value}>
-    <App />
-  </PropellerProvider>,
+  <PropellerDepsProvider value={{ graphqlClient, services, currency: '€', configuration: {} }}>
+    <PropellerProvider value={scope}>
+      <App />
+    </PropellerProvider>
+  </PropellerDepsProvider>,
 );
 ```
 
@@ -291,24 +300,40 @@ createRoot(document.getElementById('root')!).render(
 
 ## The PropellerProvider
 
-`PropellerProvider` supplies the **infrastructure context** every component
-and hook depends on. It collects the values that would otherwise be drilled
-through ~20 components as repeated props. You construct one `value` object
-and pass it once.
+Two providers supply the **infrastructure context** every component and hook
+depends on — the values that would otherwise be drilled through ~20
+components as repeated props:
 
-### `PropellerInfra` fields
+- `<PropellerDepsProvider value={deps}>` — app-wide dependencies
+  (`PropellerDeps`). Mount once at the root.
+- `<PropellerProvider value={scope}>` — per-scope state (`PropellerScope`).
+  Mount inside the deps provider; nest another one deeper to override the
+  scope for a subtree (impersonation, multi-cart, …).
+
+Components read the merged `PropellerInfra` (deps + scope + a derived
+`userMode`).
+
+### `PropellerDeps` fields (`PropellerDepsProvider`)
 
 | Field           | Type                          | Description                                                                 |
 | --------------- | ----------------------------- | --------------------------------------------------------------------------- |
 | `graphqlClient` | `GraphQLClient`               | The client you constructed. Used by hooks that accept it explicitly.        |
 | `services`      | `Services`                    | The bundle from `createServices(graphqlClient)`. Required.                  |
-| `user`          | `Contact \| Customer \| null` | The signed-in user, or `null` when anonymous.                               |
-| `companyId`     | `number \| undefined`         | Active company (B2B) — affects pricing, authorization, addresses.           |
-| `language`      | `string`                      | Locale code used to resolve localized content (e.g. `'NL'`, `'EN'`).        |
-| `includeTax`    | `boolean`                     | Whether displayed prices include tax.                                       |
-| `currency`      | `string`                      | Currency symbol for price formatting. Default: `'€'`.                       |
+| `currency`      | `string`                      | Currency symbol for price formatting, e.g. `'€'`.                           |
 | `configuration` | `unknown`                     | Config bag forwarded to components. Recognized keys: `baseCategoryId`, `anonymousUserId` (see below), image filters — plus anything of your own. |
-| `portalMode`    | `string`                      | Storefront mode (e.g. `'open'`, `'closed'`).                                |
+| `imgComponent`  | `ComponentType` (optional)    | Replaces the `<img>` every component renders (e.g. `next/image`).           |
+
+### `PropellerScope` fields (`PropellerProvider`)
+
+| Field             | Type                          | Description                                                               |
+| ----------------- | ----------------------------- | ------------------------------------------------------------------------- |
+| `user`            | `Contact \| Customer \| null` | The signed-in user, or `null` when anonymous.                             |
+| `isAuthenticated` | `boolean` (optional)          | Whether a session exists before `user` has loaded.                        |
+| `companyId`       | `number \| undefined`         | Active company (B2B) — affects pricing, authorization, addresses.         |
+| `language`        | `string`                      | Locale code used to resolve localized content (e.g. `'NL'`, `'EN'`).      |
+| `includeTax`      | `boolean`                     | Whether displayed prices include tax.                                     |
+| `portalMode`      | `string`                      | Storefront mode (e.g. `'open'`, `'semi-closed'`).                         |
+| `shopMode`        | `ShopMode` (optional)         | Combined with `user` to derive `userMode`. Default: `'hybrid'`.           |
 
 **`configuration.anonymousUserId`** — the channel's guest account. Listing
 hooks scope logged-out catalog queries to it, so the client asks the same
@@ -318,19 +343,19 @@ queries send no `userId` and the backend falls back to the api key's own
 scope. Getting this wrong is invisible — the grid renders, just with the
 wrong assortment.
 
-The `value` object is reactive — when your auth/company/language state
+The scope `value` is reactive — when your auth/company/language state
 changes, recompute it (memoize on those dependencies) and the provider
-propagates the new value. Components re-render with fresh infra; service
-instances are stable across the change.
+propagates the new value. Components re-render with fresh infra; the deps,
+and the service instances in them, stay stable across the change.
 
-> **Make the value reactive.** Wrap `value` in `useMemo` keyed on your
+> **Make the value reactive.** Wrap the scope `value` in `useMemo` keyed on your
 > auth/company/language/price state so it only changes when something
 > meaningful changes — not on every render.
 
 ### Accessing the context
 
 - `useServices()` — returns the `Services` bundle. **Throws** when called
-  outside a provider; that's an integration error, not something to paper
+  outside `PropellerDepsProvider`; that's an integration error, not something to paper
   over. Use this inside your own components/hooks to talk to the API.
 - `usePropellerContext()` — returns the full `PropellerInfra` or `null` when
   outside a provider. Non-throwing, for components that should still render
@@ -350,7 +375,7 @@ import {
   ProductCard,
   Breadcrumbs,
   CartIconAndSidebar,
-} from 'propeller-v2-react-ui';
+} from '@propeller-commerce/propeller-v2-react-ui';
 
 export function CategoryPage({ products }) {
   return (
@@ -435,7 +460,7 @@ Hooks that hit the API take an **options object** containing a
 ```tsx
 'use client';
 
-import { useCart } from 'propeller-v2-react-ui';
+import { useCart } from '@propeller-commerce/propeller-v2-react-ui';
 import { graphqlClient } from '@/lib/propeller';
 
 export function MiniCart({ user }) {
@@ -461,7 +486,7 @@ export function MiniCart({ user }) {
 ```tsx
 'use client';
 
-import { useProductSearch } from 'propeller-v2-react-ui';
+import { useProductSearch } from '@propeller-commerce/propeller-v2-react-ui';
 import { graphqlClient } from '@/lib/propeller';
 
 export function Search() {
@@ -505,14 +530,14 @@ for fully typed integration.
 In Next.js App Router you can fetch Propeller data on the server. Build a
 `GraphQLClient` server-side (with your server endpoint, API keys, cookie
 handling), call `createServices`, and use the SDK services directly. Import
-`createServices` and the pure helpers from `propeller-v2-react-ui/shared` so
+`createServices` and the pure helpers from `@propeller-commerce/propeller-v2-react-ui/shared` so
 no client boundary is forced.
 
 ```tsx
 // app/product/[id]/page.tsx — a Server Component
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices, getLanguageString } from 'propeller-v2-react-ui/shared';
-import { ProductInfo } from 'propeller-v2-react-ui'; // Client Component
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices, getLanguageString } from '@propeller-commerce/propeller-v2-react-ui/shared';
+import { ProductInfo } from '@propeller-commerce/propeller-v2-react-ui'; // Client Component
 
 async function getServerClient() {
   return new GraphQLClient({
@@ -549,7 +574,7 @@ every utility class its components reference plus the theme tokens they
 resolve against. Import it once at your app root:
 
 ```ts
-import 'propeller-v2-react-ui/styles.css';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 ```
 
 You do **not** need Tailwind in your project — the CSS is plain compiled
@@ -613,10 +638,11 @@ hook catalog, and the cascade rationale.
 
 ## API reference
 
-### From `propeller-v2-react-ui`
+### From `@propeller-commerce/propeller-v2-react-ui`
 
 - **SDK glue** — `createServices`, `toPlain`
-- **Contexts** — `PropellerProvider`, `usePropellerContext`,
+- **Contexts** — `PropellerDepsProvider`, `PropellerProvider`,
+  `usePropellerContext`, `usePropellerDeps`, `usePropellerScope`,
   `ProductGridConfigProvider`, `useProductGridConfig`
 - **Composables** — all `use*` hooks listed above
 - **Components** — all components listed above
@@ -631,12 +657,13 @@ hook catalog, and the cascade rationale.
   `extractAttributeValues`, `collectAttributeValues`,
   `filterProductsBySelections`, `initCart`, `fetchActiveCart`,
   `mergeAnonymousCart`, `COUNTRIES`
-- **Types** — `Services`, `PropellerInfra`, `PropellerProviderProps`,
+- **Types** — `Services`, `PropellerDeps`, `PropellerScope`,
+  `PropellerInfra`, `PropellerDepsProviderProps`, `PropellerProviderProps`,
   `ProductGridConfig`, `Country`, `AnyUser`, all `Use*Options` /
   `Use*Return` hook types, and the full domain type set (`auth`, `cart`,
   `company`, `favorites`, `orders`, `pagination`, `product`).
 
-### From `propeller-v2-react-ui/shared`
+### From `@propeller-commerce/propeller-v2-react-ui/shared`
 
 A subset of the above with **no React dependency** — `createServices`,
 `toPlain`, all formatters and helpers, `COUNTRIES`, and every domain type.
@@ -647,14 +674,14 @@ Use it from Server Components or any non-React code.
 The package is written in TypeScript and ships full `.d.ts` declarations.
 Every hook exports its `Use*Options` and `Use*Return` types, every component
 its `*Props` type, and all domain types (`Cart`, `Product`, `Order`, …) flow
-through from `propeller-sdk-v2`.
+through from `@propeller-commerce/propeller-sdk-v2`.
 
 ```ts
 import type {
   PropellerInfra,
   UseCartReturn,
   ProductCardProps,
-} from 'propeller-v2-react-ui';
+} from '@propeller-commerce/propeller-v2-react-ui';
 ```
 
 ## Building from source

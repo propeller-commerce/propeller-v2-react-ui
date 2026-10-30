@@ -7,10 +7,10 @@ title: Getting started
 ## Install
 
 ```bash
-npm install propeller-v2-react-ui propeller-sdk-v2
+npm install @propeller-commerce/propeller-v2-react-ui @propeller-commerce/propeller-sdk-v2
 ```
 
-`propeller-sdk-v2` is a **peer dependency** — install it yourself so the
+`@propeller-commerce/propeller-sdk-v2` is a **peer dependency** — install it yourself so the
 package and your application share a single SDK instance.
 
 ### Peer dependencies
@@ -19,7 +19,7 @@ package and your application share a single SDK instance.
 | ------------------ | ------- | -------- |
 | `react`            | `>=18`  | Yes      |
 | `react-dom`        | `>=18`  | Yes      |
-| `propeller-sdk-v2` | `*`     | Yes      |
+| `@propeller-commerce/propeller-sdk-v2` | `*`     | Yes      |
 
 There is **no dependency on Next.js**. Next.js apps work out of the box;
 nothing in the package imports `next/*`.
@@ -30,7 +30,7 @@ The package ships a precompiled stylesheet. Import it once, at your app
 root:
 
 ```ts
-import 'propeller-v2-react-ui/styles.css';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 ```
 
 You do not need Tailwind in your own project — the CSS is already
@@ -39,14 +39,26 @@ compiled. (See [Styling](/styling) for how to override it.)
 ## Wire the provider
 
 Every component resolves its infrastructure (the SDK services, the
-current user, language, currency, …) from a single `PropellerProvider`
-at the root of your tree. You construct a GraphQL client, build the
-services bundle, and hand both to the provider:
+current user, language, currency, …) from two nested providers at the
+root of your tree:
+
+- **`PropellerDepsProvider`** — app-wide dependencies: `graphqlClient`,
+  `services`, `currency`, `configuration`. Mount it once.
+- **`PropellerProvider`** — per-scope state: `user`, `companyId`,
+  `language`, `includeTax`, `portalMode`. Mount it inside the deps
+  provider.
+
+You construct a GraphQL client, build the services bundle, and hand both
+to `PropellerDepsProvider`:
 
 ```tsx
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { PropellerProvider, createServices } from 'propeller-v2-react-ui';
-import 'propeller-v2-react-ui/styles.css';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import {
+  PropellerDepsProvider,
+  PropellerProvider,
+  createServices,
+} from '@propeller-commerce/propeller-v2-react-ui';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 
 const graphqlClient = new GraphQLClient({
   endpoint: '/api/graphql', // your endpoint / proxy path
@@ -57,19 +69,22 @@ const services = createServices(graphqlClient);
 
 export function App({ children }) {
   return (
-    <PropellerProvider value={{
+    <PropellerDepsProvider value={{
       graphqlClient,
       services,
-      user: null,        // your auth state
-      companyId: undefined,
-      language: 'NL',
-      includeTax: false,
       currency: '€',
-      portalMode: 'open',
       configuration: {},
     }}>
-      {children}
-    </PropellerProvider>
+      <PropellerProvider value={{
+        user: null,        // your auth state
+        companyId: undefined,
+        language: 'NL',
+        includeTax: false,
+        portalMode: 'open',
+      }}>
+        {children}
+      </PropellerProvider>
+    </PropellerDepsProvider>
   );
 }
 ```
@@ -83,7 +98,7 @@ package.
 Inside the provider, drop in a component:
 
 ```tsx
-import { ProductCard } from 'propeller-v2-react-ui';
+import { ProductCard } from '@propeller-commerce/propeller-v2-react-ui';
 
 <ProductCard product={product} />
 ```

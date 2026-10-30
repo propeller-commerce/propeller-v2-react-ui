@@ -7,7 +7,7 @@ nested components without forking the package.
 
 Pass a partner-built component into a `*Component` prop on any host. The host
 renders your component in place of the default. The component must implement
-the documented contract (TypeScript interface in `propeller-v2-core-ui`).
+the documented contract (TypeScript interface in `@propeller-commerce/propeller-v2-core-ui`).
 
 ### Hosts and their injection slots
 
@@ -49,7 +49,7 @@ To force the default render in compound mode, the consumer composes
 ### Example: brand the price everywhere
 
 ```tsx
-import { ProductGrid, type PriceComponentProps } from 'propeller-v2-react-ui';
+import { ProductGrid, type PriceComponentProps } from '@propeller-commerce/propeller-v2-react-ui';
 
 const MyPrice: React.FC<PriceComponentProps> = ({ price, includeTax, currency }) => (
   <strong className="my-price">
@@ -68,7 +68,7 @@ no per-card prop needed.
 Import the `Default*` component and wrap it instead of rebuilding from scratch:
 
 ```tsx
-import { DefaultProductPrice, type PriceComponentProps } from 'propeller-v2-react-ui';
+import { DefaultProductPrice, type PriceComponentProps } from '@propeller-commerce/propeller-v2-react-ui';
 
 const MyPriceWithBadge: React.FC<PriceComponentProps> = (props) => (
   <div>
@@ -81,7 +81,7 @@ const MyPriceWithBadge: React.FC<PriceComponentProps> = (props) => (
 ### Example: swap the whole card
 
 ```tsx
-import { ProductGrid, useProductGridConfig } from 'propeller-v2-react-ui';
+import { ProductGrid, useProductGridConfig } from '@propeller-commerce/propeller-v2-react-ui';
 import type { Product } from '@propeller-commerce/propeller-sdk-v2';
 
 function MyCard({ product }: { product: Product }) {
@@ -442,7 +442,7 @@ plus pre-existing `showTitle` and `showSku`.
 
 ## Contract types
 
-All slot contracts live in `propeller-v2-core-ui`:
+All slot contracts live in `@propeller-commerce/propeller-v2-core-ui`:
 
 - `PriceComponentProps`
 - `StockComponentProps`
@@ -457,12 +457,12 @@ All slot contracts live in `propeller-v2-core-ui`:
 Import directly:
 
 ```tsx
-import type { PriceComponentProps } from 'propeller-v2-react-ui';
+import type { PriceComponentProps } from '@propeller-commerce/propeller-v2-react-ui';
 // or
-import type { PriceComponentProps } from 'propeller-v2-core-ui';
+import type { PriceComponentProps } from '@propeller-commerce/propeller-v2-core-ui';
 ```
 
-(`propeller-v2-react-ui` re-exports them from `propeller-v2-core-ui` for
+(`@propeller-commerce/propeller-v2-react-ui` re-exports them from `@propeller-commerce/propeller-v2-core-ui` for
 convenience.)
 
 ## Default sub-component exports

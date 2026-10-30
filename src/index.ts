@@ -6,8 +6,8 @@
  * one of these components in a Server Component will automatically draw the
  * Client boundary at that import.
  *
- * For the server-only counterpart (`createServerClient`, `getServerInfra`,
- * `fetchProduct`, `fetchCategory`), import from `'propeller-v2-react-ui/server'`.
+ * For Server Components, import pure helpers from
+ * `'@propeller-commerce/propeller-v2-react-ui/shared'` or `'/pure'`.
  */
 
 // ── SDK seam + pure utilities + domain types (re-exported from core) ──────
@@ -15,7 +15,7 @@
 // `/api/graphql` URL. Consumers construct their own `GraphQLClient` (with
 // whatever endpoint, headers and auth resolver fits their app), call
 // `createServices(client)` once at startup, and pass BOTH into
-// `<PropellerProvider value={{ graphqlClient, services, ... }}>`.
+// `<PropellerDepsProvider value={{ graphqlClient, services, ... }}>`.
 //
 // All pure-TS utilities (formatPrice, getCountryName, etc.), domain types,
 // and the SDK seam (createServices, toPlain) now live in propeller-v2-core-ui
@@ -135,6 +135,7 @@ export {
   setItemQuantity as setPriceRequestItemQuantity,
   containsItem as priceRequestContains,
   type PriceRequestItem,
+  type PriceRequestSubmitExtras,
 } from './composables/shared/utils/priceRequestList';
 
 export { isPriceOnRequest } from './composables/shared/utils/priceOnRequest';

@@ -144,6 +144,8 @@ export interface UseProductSearchReturn {
   searchItemsFound: number;
   /** `true` while the debounced search-bar query is in flight. */
   searchLoading: boolean;
+  /** `true` when the latest search-bar query failed, as opposed to finding nothing. */
+  searchError: boolean;
   /** Runs the main category product fetch. */
   fetchProducts: () => Promise<void>;
   /** Sets the search-bar term and triggers a debounced product search. */
@@ -188,9 +190,11 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
   const [searchResults, setSearchResults] = useState<(Product | Cluster)[]>([]);
   const [searchItemsFound, setSearchItemsFound] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
 
   const fetchIdRef = useRef(0);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchIdRef = useRef(0);
   const pagination = usePagination(pageSize);
 
   // Stable string key from the user's ID — prevents re-fetches when the user
@@ -485,9 +489,13 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
     (term: string): void => {
       setSearchTerm(term);
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      // Supersedes any in-flight search so its late result can't commit.
+      const thisSearchId = ++searchIdRef.current;
+      setSearchError(false);
       if (!term.trim()) {
         setSearchResults([]);
         setSearchItemsFound(0);
+        setSearchLoading(false);
         return;
       }
       searchTimerRef.current = setTimeout(async () => {
@@ -603,6 +611,7 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
           };
 
           const response = await service.getCategory(variables);
+          if (thisSearchId !== searchIdRef.current) return;
           const productsResponse = response?.products as ProductsResponse | undefined;
           const rawItems = (productsResponse?.items ?? []) as (Product | Cluster)[];
           // Drop products with no name in the active language — same as the grid
@@ -614,11 +623,14 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
           const apiTotal = productsResponse?.itemsFound ?? rawItems.length;
           setSearchResults(items);
           setSearchItemsFound(Math.max(0, apiTotal - untranslated));
-        } catch {
+        } catch (e) {
+          if (thisSearchId !== searchIdRef.current) return;
+          console.error('[useProductSearch] search error:', e);
           setSearchResults([]);
           setSearchItemsFound(0);
+          setSearchError(true);
         } finally {
-          setSearchLoading(false);
+          if (thisSearchId === searchIdRef.current) setSearchLoading(false);
         }
       }, 300);
     },
@@ -661,6 +673,7 @@ export function useProductSearch(options: UseProductSearchOptions): UseProductSe
     searchResults,
     searchItemsFound,
     searchLoading,
+    searchError,
     fetchProducts,
     search,
     goToPage: pagination.goToPage,

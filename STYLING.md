@@ -6,7 +6,7 @@ tokens those utilities resolve against. Consumers import it once:
 
 ```ts
 // app/layout.tsx (or your root)
-import 'propeller-v2-react-ui/styles.css';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 ```
 
 If you don't want default styling at all, skip the import — every

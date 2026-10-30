@@ -1,6 +1,6 @@
 # Migration Guide
 
-Breaking changes between versions of `propeller-v2-react-ui`, with the steps
+Breaking changes between versions of `@propeller-commerce/propeller-v2-react-ui`, with the steps
 to upgrade. The package is pre-1.0, so breaking changes can land in `0.x`
 minor versions — each one is documented here.
 
@@ -82,7 +82,7 @@ client-side fetch behaviour. This is purely opt-in for hosts that want to
 move the category tree fetch into a Server Component (e.g. a Next.js
 layout) so the menu HTML lands in the initial response and the host can
 attach framework cache hints — see also `GraphQLFetchOptions` in
-`propeller-sdk-v2` v0.11.0.
+`@propeller-commerce/propeller-sdk-v2` v0.11.0.
 
 ### Recommended pattern for Next.js consumers
 
@@ -102,7 +102,7 @@ export default async function RootLayout({ children }) {
 }
 
 // components/layout/Header.tsx — 'use client'
-import { Menu } from 'propeller-v2-react-ui';
+import { Menu } from '@propeller-commerce/propeller-v2-react-ui';
 export default function Header({ menuTree }) {
   return <Menu categoryId={BASE_CATEGORY_ID} tree={menuTree} onMenuItemClick={...} />;
 }
@@ -130,10 +130,10 @@ removed.
 
 | Before | After |
 | ------ | ----- |
-| `import { graphqlClient } from 'propeller-v2-react-ui'` | Consumer constructs its own `GraphQLClient` |
-| `import { getServices } from 'propeller-v2-react-ui'` | `import { createServices } from 'propeller-v2-react-ui'` |
+| `import { graphqlClient } from '@propeller-commerce/propeller-v2-react-ui'` | Consumer constructs its own `GraphQLClient` |
+| `import { getServices } from '@propeller-commerce/propeller-v2-react-ui'` | `import { createServices } from '@propeller-commerce/propeller-v2-react-ui'` |
 | `getServices()` (singleton default) | `createServices(client)` — explicit client, required |
-| `propeller-v2-react-ui/server` entry | Removed — host your own server module |
+| `@propeller-commerce/propeller-v2-react-ui/server` entry | Removed — host your own server module |
 | `next` peer dependency | Removed — the package has no `next/*` imports |
 | `PropellerInfra` without `services` | `PropellerInfra` requires a `services` field |
 
@@ -146,8 +146,8 @@ services bundle:
 
 ```ts
 // lib/api.ts — in YOUR app
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices } from 'propeller-v2-react-ui';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices } from '@propeller-commerce/propeller-v2-react-ui';
 
 export const graphqlClient = new GraphQLClient({
   endpoint: '/api/graphql',              // your endpoint / proxy path
@@ -164,27 +164,32 @@ The endpoint, env-var names, and timeout are now **your** decision — pick
 whatever fits your app (a route-handler proxy, a direct upstream URL, a
 custom rewrite).
 
-#### 2. Pass `graphqlClient` and `services` into `PropellerProvider`
+#### 2. Pass `graphqlClient` and `services` into `PropellerDepsProvider`
 
-`PropellerInfra` now requires `services`:
+`services` is now required. In current versions the app-wide deps go into
+`PropellerDepsProvider` and the per-scope state into a nested
+`PropellerProvider`:
 
 ```tsx
-import { PropellerProvider } from 'propeller-v2-react-ui';
+import { PropellerDepsProvider, PropellerProvider } from '@propeller-commerce/propeller-v2-react-ui';
 import { graphqlClient, services } from '@/lib/api';
 
-<PropellerProvider value={{
+<PropellerDepsProvider value={{
   graphqlClient,
   services,           // ← newly required
-  user,
-  companyId,
-  language: 'NL',
-  includeTax: false,
   currency: '€',
-  portalMode: 'OPEN',
   configuration: {},
 }}>
-  {children}
-</PropellerProvider>
+  <PropellerProvider value={{
+    user,
+    companyId,
+    language: 'NL',
+    includeTax: false,
+    portalMode: 'open',
+  }}>
+    {children}
+  </PropellerProvider>
+</PropellerDepsProvider>
 ```
 
 #### 3. Replace `graphqlClient` / `getServices` imports
@@ -193,7 +198,7 @@ Anywhere you imported these from the package, import from your own
 `lib/api` instead:
 
 ```diff
-- import { graphqlClient, getServices } from 'propeller-v2-react-ui';
+- import { graphqlClient, getServices } from '@propeller-commerce/propeller-v2-react-ui';
 + import { graphqlClient, services } from '@/lib/api';
 ```
 
@@ -227,15 +232,15 @@ the `useServices()` hook instead of importing `services` directly.
 #### 5. Replace the `/server` entry
 
 If you imported `createServerClient`, `getServerInfra`, `fetchProduct`, or
-`fetchCategory` from `propeller-v2-react-ui/server`, that entry is gone.
+`fetchCategory` from `@propeller-commerce/propeller-v2-react-ui/server`, that entry is gone.
 Host a server module in your own app instead. The pattern:
 
 ```ts
 // lib/server.ts — in YOUR app
 import 'server-only';
 import { cookies } from 'next/headers';        // or your framework's equivalent
-import { GraphQLClient } from 'propeller-sdk-v2';
-import { createServices, toPlain } from 'propeller-v2-react-ui/shared';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
+import { createServices, toPlain } from '@propeller-commerce/propeller-v2-react-ui/shared';
 
 export function createServerClient() {
   return new GraphQLClient({
@@ -256,7 +261,7 @@ export async function fetchProduct(productId: number, language = 'NL') {
 }
 ```
 
-`createServices` is exported from `propeller-v2-react-ui/shared` precisely so
+`createServices` is exported from `@propeller-commerce/propeller-v2-react-ui/shared` precisely so
 it can be used server-side without pulling the client bundle into the server
 graph. The `propeller-next` repo's `lib/server.ts` is a complete reference
 implementation — copy it and adjust the env-var names and cookie name.

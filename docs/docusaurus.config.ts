@@ -68,8 +68,8 @@ const config: Config = {
         {to: '/api', label: 'API reference', position: 'left'},
         {to: '/contributing', label: 'Contributing', position: 'left'},
         {
-          href: 'https://gitlab.com/propellor-eu/propeller-v2-react-ui',
-          label: 'GitLab',
+          href: 'https://github.com/propeller-commerce/propeller-v2-react-ui',
+          label: 'GitHub',
           position: 'right',
         },
       ],
@@ -100,8 +100,8 @@ const config: Config = {
           title: 'Resources',
           items: [
             {
-              label: 'GitLab',
-              href: 'https://gitlab.com/propellor-eu/propeller-v2-react-ui',
+              label: 'GitHub',
+              href: 'https://github.com/propeller-commerce/propeller-v2-react-ui',
             },
             {
               label: 'SDK docs',

@@ -28,7 +28,7 @@ composable (use* hook)            ← state, loading, error handling
 Services bundle (services.x)      ← built once by createServices()
    │  delegates to
    ▼
-propeller-sdk-v2 Service class    ← builds the GraphQL document
+@propeller-commerce/propeller-sdk-v2 Service class    ← builds the GraphQL document
    │  uses
    ▼
 GraphQLClient                     ← YOUR endpoint, headers, auth
@@ -44,11 +44,11 @@ transport. See [The SDK seam](/sdk-seam) for why.
 ## `GraphQLClient` — you build it
 
 The package ships no client and no endpoint. You construct a
-`GraphQLClient` from `propeller-sdk-v2` with the endpoint, headers, timeout
+`GraphQLClient` from `@propeller-commerce/propeller-sdk-v2` with the endpoint, headers, timeout
 and auth resolver that fit your app, and you keep ownership of it.
 
 ```tsx
-import { GraphQLClient } from 'propeller-sdk-v2';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 
 const graphqlClient = new GraphQLClient({
   endpoint: '/api/graphql',   // your route / proxy / upstream URL
@@ -72,7 +72,7 @@ visible to every composable.
 each wired to the client you passed.
 
 ```tsx
-import { createServices } from 'propeller-v2-react-ui';
+import { createServices } from '@propeller-commerce/propeller-v2-react-ui';
 
 const services = createServices(graphqlClient);
 // services.cart, services.product, services.order, …
@@ -80,7 +80,7 @@ const services = createServices(graphqlClient);
 
 It is **memoised per client** with a `WeakMap` — calling it again with the
 same client returns the same bundle, so there is no cost to calling it
-freely. You pass `services` (and `graphqlClient`) into `<PropellerProvider>`
+freely. You pass `services` (and `graphqlClient`) into `<PropellerDepsProvider>`
 once; from there `useServices()` returns the bundle anywhere in the tree.
 
 See [`createServices`](/api/functions/createServices) and
@@ -91,7 +91,7 @@ See [`createServices`](/api/functions/createServices) and
 There are two patterns, and the package uses both:
 
 1. **Via the provider** — a composable calls `useServices()` to read the
-   bundle from `<PropellerProvider>`. Used by `useServices` itself and the
+   bundle from `<PropellerDepsProvider>`. Used by `useServices` itself and the
    pure context hooks.
 2. **Via an explicit `graphqlClient` option** — most data hooks
    (`useCart`, `useAuth`, `useOrders`, …) accept `graphqlClient` in their
@@ -133,7 +133,7 @@ if (!result.success) {
 ```
 
 The exception is `useServices()`, which **throws** if called outside
-`<PropellerProvider>` — that is an integration mistake, not a runtime
+`<PropellerDepsProvider>` — that is an integration mistake, not a runtime
 error, so it fails loudly and early.
 
 ## Authentication, in one paragraph

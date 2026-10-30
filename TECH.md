@@ -18,14 +18,15 @@ favorites, orders, quotes, purchase authorization, CMS-driven product
 sliders/grids). Consumers wire:
 
 ```ts
-import { GraphQLClient } from 'propeller-sdk-v2';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 import {
+  PropellerDepsProvider,
   PropellerProvider,
   ProductCard,
   AddToCart,
   createServices,
-} from 'propeller-v2-react-ui';
-import 'propeller-v2-react-ui/styles.css';
+} from '@propeller-commerce/propeller-v2-react-ui';
+import '@propeller-commerce/propeller-v2-react-ui/styles.css';
 
 // The consumer constructs the GraphQL client with whatever endpoint /
 // auth / headers fit its app. The package itself has no opinion about
@@ -37,13 +38,13 @@ const graphqlClient = new GraphQLClient({
 });
 const services = createServices(graphqlClient);
 
-<PropellerProvider value={{
-  graphqlClient, services, user, companyId,
-  language: 'NL', includeTax: false, currency: '€',
-  portalMode: 'OPEN', configuration: {},
-}}>
-  {children}
-</PropellerProvider>
+<PropellerDepsProvider value={{ graphqlClient, services, currency: '€', configuration: {} }}>
+  <PropellerProvider value={{
+    user, companyId, language: 'NL', includeTax: false, portalMode: 'open',
+  }}>
+    {children}
+  </PropellerProvider>
+</PropellerDepsProvider>
 ```
 
 …and the components render, talk to the Propeller GraphQL API via the
@@ -57,7 +58,7 @@ compiled React.
 |---|---|---|
 | `react` | `>=18` | Hooks the package uses are all 18-compatible (no React 19-only APIs in the bundle). |
 | `react-dom` | `>=18` | matches `react` |
-| `propeller-sdk-v2` | `*` | The SDK is the data layer; the package is intentionally a thin wrapper. Re-export of SDK types is part of the public API surface. |
+| `@propeller-commerce/propeller-sdk-v2` | `*` | The SDK is the data layer; the package is intentionally a thin wrapper. Re-export of SDK types is part of the public API surface. |
 
 Note: there is **no Next.js peer dep**. The package ships zero
 Next-specific imports (no `next/link`, `next/headers`, `next/image`).
@@ -129,23 +130,23 @@ Component without forcing the import site to commit to a runtime.
 
 | Export | Subpath | Runtime | Banner / guard |
 |---|---|---|---|
-| Client | `propeller-v2-react-ui` | Browser + RSC-client islands | `"use client";` prepended to the bundle |
-| Pure | `propeller-v2-react-ui/pure` | Either runtime — the pure/presentational components only | None (no banner) |
-| Shared | `propeller-v2-react-ui/shared` | Either runtime — no React, no `"use client"` banner | None (genuinely portable) |
+| Client | `@propeller-commerce/propeller-v2-react-ui` | Browser + RSC-client islands | `"use client";` prepended to the bundle |
+| Pure | `@propeller-commerce/propeller-v2-react-ui/pure` | Either runtime — the pure/presentational components only | None (no banner) |
+| Shared | `@propeller-commerce/propeller-v2-react-ui/shared` | Either runtime — no React, no `"use client"` banner | None (genuinely portable) |
 
 ### When to import from where
 
-- **Components, hooks, contexts, `createServices`** → `propeller-v2-react-ui`.
+- **Components, hooks, contexts, `createServices`** → `@propeller-commerce/propeller-v2-react-ui`.
   Importing a component into a Server Component implicitly draws the
   client boundary thanks to the `"use client"` banner.
 - **The 12 pure/presentational components** (`Breadcrumbs`, `ProductPrice`,
-  `ItemStock`, `OrderTotals`, …) → `propeller-v2-react-ui/pure` when you
+  `ItemStock`, `OrderTotals`, …) → `@propeller-commerce/propeller-v2-react-ui/pure` when you
   want to render them inside a Server Component. The `pure` bundle has no
   `"use client"` banner, so an RSC can server-render real product/price/
   order markup. The same components are also on the main entry — use that
   inside a client boundary. (See §3.1.)
 - **`formatPrice`, `getLabel`, `getLanguageString`, `getProductImageUrl`,
-  `createServices`, `toPlain`, type helpers** → `propeller-v2-react-ui/shared`.
+  `createServices`, `toPlain`, type helpers** → `@propeller-commerce/propeller-v2-react-ui/shared`.
   A Server Component rendering a product name needs
   `getLanguageString(product.names, lang)` — pulling this from `/` would
   force-import the entire client bundle (with all its `'use client'`
@@ -167,13 +168,13 @@ event handlers, browser APIs or context reads — `Breadcrumbs`,
 `tsup` builds `pure` as its own entry and — unlike `index` — the
 `onSuccess` hook does **not** prepend the `"use client"` banner to it. So a
 React Server Component can `import { ProductPrice } from
-'propeller-v2-react-ui/pure'` and render it directly, server-side, without
+'@propeller-commerce/propeller-v2-react-ui/pure'` and render it directly, server-side, without
 drawing a client boundary or pulling the client bundle into the server
 graph.
 
 Adding a component to `/pure` is gated: it must use none of the above
 client-only features, and must not transitively import a `"use client"`
-sibling — only `react`, `propeller-sdk-v2` (external peer) and the
+sibling — only `react`, `@propeller-commerce/propeller-sdk-v2` (external peer) and the
 framework-free `composables/shared/utils/` helpers. The build will not
 warn if this is violated; an RSC import smoke test is the check.
 
@@ -193,7 +194,7 @@ neither marked client nor marked server. Anything pure TS goes there.
 
 ### What is NOT in this package
 
-There used to be a third entry, `propeller-v2-react-ui/server`, which
+There used to be a third entry, `@propeller-commerce/propeller-v2-react-ui/server`, which
 shipped `createServerClient`, `getServerInfra`, `fetchProduct`, and
 `fetchCategory` for Server Components. **It was removed on 2026-05-20**
 along with the client-side `graphqlClient` singleton (see §6). The
@@ -230,7 +231,7 @@ Each definition:
 - Generates `.d.ts` declarations.
 - Uses the **automatic JSX runtime** (`esbuildOptions: { jsx: 'automatic' }`)
   — see "JSX runtime gotcha" below.
-- Marks `react`, `react-dom`, `react/jsx-runtime`, `propeller-sdk-v2`
+- Marks `react`, `react-dom`, `react/jsx-runtime`, `@propeller-commerce/propeller-sdk-v2`
   as **external** so the consumer's versions are used.
 - `splitting: false` (one file per entry — predictable output, no chunks).
 
@@ -273,7 +274,7 @@ rename entirely. **Don't switch back.**
 
 The Tailwind v4 CLI scans `src/styles.css`, follows its `@source`
 directives to find class names in the component source files, and emits
-a self-contained CSS bundle. Consumers `import 'propeller-v2-react-ui/styles.css'`
+a self-contained CSS bundle. Consumers `import '@propeller-commerce/propeller-v2-react-ui/styles.css'`
 once; no Tailwind required on the consumer side.
 
 ### The `@source inline()` escape hatch
@@ -302,34 +303,40 @@ tsup runs first, clears `dist/`, then the Tailwind CLI writes
 
 ## 5. PropellerProvider — the single integration point
 
-Consumers configure the package via one provider at the root:
+Consumers configure the package via two nested providers at the root —
+app-wide deps in `PropellerDepsProvider`, per-scope state in
+`PropellerProvider`:
 
 ```tsx
-import { GraphQLClient } from 'propeller-sdk-v2';
+import { GraphQLClient } from '@propeller-commerce/propeller-sdk-v2';
 import {
-  PropellerProvider, createServices, type PropellerInfra,
-} from 'propeller-v2-react-ui';
+  PropellerDepsProvider, PropellerProvider, createServices,
+  type PropellerDeps, type PropellerScope,
+} from '@propeller-commerce/propeller-v2-react-ui';
 
 // Once at app startup
 const graphqlClient = new GraphQLClient({ endpoint: '/api/graphql', ... });
-const services = createServices(graphqlClient);
+const deps: PropellerDeps = {
+  graphqlClient,                        // the client the consumer built
+  services: createServices(graphqlClient), // bundle keyed to that client
+  currency: '€',
+  configuration: {},                    // free-form bag for app config
+};
 
 function App() {
-  const value: PropellerInfra = useMemo(() => ({
-    graphqlClient,         // the client the consumer built
-    services,              // bundle keyed to that client
+  const scope: PropellerScope = useMemo(() => ({
     user, companyId,       // wired from host's auth/company stores
     language: 'NL',
     includeTax: false,
-    currency: '€',
-    portalMode: 'OPEN',
-    configuration: {},     // free-form bag — consumers stuff app config here
+    portalMode: 'open',
   }), [user, companyId, includeTax, language]);
 
   return (
-    <PropellerProvider value={value}>
-      <YourApp />
-    </PropellerProvider>
+    <PropellerDepsProvider value={deps}>
+      <PropellerProvider value={scope}>
+        <YourApp />
+      </PropellerProvider>
+    </PropellerDepsProvider>
   );
 }
 ```
@@ -430,8 +437,9 @@ The 2026-05-20 decoupling deleted `src/lib/api.ts` outright. Now:
   ~60-line file the consumer owns).
 - Consumer calls `createServices(graphqlClient)` once → gets the
   `Services` bundle (`{ product, cart, user, order, … }`).
-- Consumer passes BOTH into `<PropellerProvider value={{ graphqlClient,
-  services, ... }}>`.
+- Consumer passes BOTH into `<PropellerDepsProvider value={{ graphqlClient,
+  services, currency, configuration }}>`, with the per-scope state in a
+  nested `<PropellerProvider>`.
 - Composables read `services` via `useServices()` or accept a
   `graphqlClient` option and derive services locally.
 
@@ -483,7 +491,7 @@ module that:
 2. Reads the auth token from a cookie (e.g. via `next/headers` in
    Next.js).
 3. Calls `createServices(serverClient)` from
-   `propeller-v2-react-ui/shared` to get the Services bundle.
+   `@propeller-commerce/propeller-v2-react-ui/shared` to get the Services bundle.
 4. Exposes thin async helpers like `fetchProduct(productId)` that wrap
    the SDK calls and run results through `toPlain`.
 
@@ -530,9 +538,9 @@ Per the Phase C0 audit, each component falls into one of three buckets:
 
 **But:** the `"use client"` banner on the bundle currently flattens
 this distinction at runtime — every consumer that imports from
-`propeller-v2-react-ui` gets a client boundary. The bucket labels are a
+`@propeller-commerce/propeller-v2-react-ui` gets a client boundary. The bucket labels are a
 **roadmap** for a future refactor: ship Bucket-B from a separate
-sub-entry (`propeller-v2-react-ui/server-components`?) without the
+sub-entry (`@propeller-commerce/propeller-v2-react-ui/server-components`?) without the
 banner, so they render server-side natively.
 
 ### Serialization gotcha
@@ -604,21 +612,21 @@ The propeller-next repo consumes the package via a `file:` link in
 
 ```json
 "dependencies": {
-  "propeller-v2-react-ui": "file:../propeller-ui/propeller-v2-react-ui"
+  "@propeller-commerce/propeller-v2-react-ui": "file:../propeller-ui/propeller-v2-react-ui"
 }
 ```
 
 Installed with `npm install --install-links` on Windows. The
 `--install-links` flag **materializes a copy** instead of creating a
 symlink — symlinks break Node's walk-up resolution for nested
-dependencies (`propeller-sdk-v2` can't be found through a symlinked
+dependencies (`@propeller-commerce/propeller-sdk-v2` can't be found through a symlinked
 `node_modules`).
 
 After rebuilding the package (no version bump), the consumer must
 **remove and reinstall** for npm to pick up the new dist:
 
 ```bash
-rm -rf node_modules/propeller-v2-react-ui
+rm -rf node_modules/@propeller-commerce/propeller-v2-react-ui
 npm install file:../propeller-ui/propeller-v2-react-ui --install-links
 ```
 
@@ -627,7 +635,7 @@ npm install file:../propeller-ui/propeller-v2-react-ui --install-links
 Other required consumer settings in `next.config.ts`:
 
 ```ts
-transpilePackages: ['propeller-v2-react-ui'],
+transpilePackages: ['@propeller-commerce/propeller-v2-react-ui'],
 outputFileTracingRoot: resolve(__dirname, '..', '..'),
 ```
 
@@ -650,7 +658,8 @@ so the production build correctly bundles the file-linked package.
    — reads from propeller-next's own AuthContext / CompanyContext /
    PriceContext / LanguageContext, plus the `graphqlClient` and
    `services` from `lib/api.ts`, and assembles the
-   `<PropellerProvider value={...}>` value object.
+   `<PropellerDepsProvider value={deps}>` + `<PropellerProvider value={scope}>`
+   value objects.
 
 A different consumer (Vite SPA, Remix app, plain CRA) writes the
 equivalent three files with its own conventions. The package itself

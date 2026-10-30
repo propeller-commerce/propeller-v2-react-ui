@@ -23,6 +23,7 @@ import {
   removeItem,
   setItemQuantity,
   type PriceRequestItem,
+  type PriceRequestSubmitExtras,
 } from '../shared/utils/priceRequestList';
 
 export const PRICE_REQUEST_STORAGE_KEY = 'propeller_price_request';
@@ -76,11 +77,16 @@ function write(key: string, next: PriceRequestItem[]): void {
 
 export interface UsePriceRequestOptions {
   /**
-   * Sends the finished request. Receives the list and the shopper's comment;
+   * Sends the finished request. Receives the list, the shopper's comment and
+   * the form extras (`website` honeypot: non-empty means a bot);
    * resolve to report success. Supplied by the host — the API has no mutation
    * for this.
    */
-  onSubmit?: (items: PriceRequestItem[], comment: string) => Promise<void> | void;
+  onSubmit?: (
+    items: PriceRequestItem[],
+    comment: string,
+    extras: PriceRequestSubmitExtras
+  ) => Promise<void> | void;
   /** Overrides the localStorage key, for hosts running several shops per origin. */
   storageKey?: string;
 }
@@ -97,7 +103,7 @@ export interface UsePriceRequestReturn {
   clear: () => void;
   has: (code: string) => boolean;
   /** Sends the list via `onSubmit`, clearing it only on success. */
-  submit: (comment: string) => Promise<boolean>;
+  submit: (comment: string, extras?: PriceRequestSubmitExtras) => Promise<boolean>;
   submitting: boolean;
   error: string | null;
 }
@@ -145,7 +151,7 @@ export function usePriceRequest(options: UsePriceRequestOptions = {}): UsePriceR
   const has = useCallback((code: string) => containsItem(items, code), [items]);
 
   const submit = useCallback(
-    async (comment: string): Promise<boolean> => {
+    async (comment: string, extras: PriceRequestSubmitExtras = {}): Promise<boolean> => {
       const current = getSnapshot(storageKey);
       if (!current.length) {
         setError('empty');
@@ -158,7 +164,7 @@ export function usePriceRequest(options: UsePriceRequestOptions = {}): UsePriceR
       setSubmitting(true);
       setError(null);
       try {
-        await options.onSubmit(current, comment);
+        await options.onSubmit(current, comment, extras);
         write(storageKey, []);
         return true;
       } catch (e) {
