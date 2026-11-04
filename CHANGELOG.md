@@ -8,6 +8,34 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.0] - 2026-11-04
+
+### Added
+
+- **`RegisterForm` can register without a password.** `showPassword={false}`
+  leaves the password fields out, sends no password and never logs in, whatever
+  `automaticLogin` says. The user sets a password later through a
+  password-reset link, for shops that approve each account in the Propeller
+  backoffice first. The success text comes from `labels.successMessage`.
+- **`RegisterForm` `sendWelcomeEmail`** (default `true`). Set it to
+  `false` to skip the welcome email after registration.
+- **`useAuth` `registerContact` / `registerCustomer`** take a 4th
+  `sendWelcomeEmail` argument (default `true`), and `password` is now
+  optional on `RegisterContactInput` / `RegisterCustomerInput`. Without a
+  password, the addresses are created with the session from the register
+  response and `login()` is never called. Existing callers are unchanged.
+
+### Fixed
+
+- **A failed password-less registration is reported.** If the register call
+  fails, or returns no session to create the addresses with, the hook returns
+  an error instead of a silent success.
+
+### Changed
+
+- Builds and tests against `propeller-sdk-v2` 0.18.1 (dev dependency; the
+  peer range stays `*`).
+
 ## [0.33.0] - 2026-10-30
 
 ### Added

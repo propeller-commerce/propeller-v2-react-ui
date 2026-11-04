@@ -55,8 +55,8 @@ export type LoginResult = Result<AuthSuccess, string>;
 export interface RegisterContactInput {
   /** Login email for the new contact. */
   email: string;
-  /** Initial account password. */
-  password: string;
+  /** Initial account password. Omit to let the contact set one via a password-reset link. */
+  password?: string;
   /** Contact's first name. */
   firstName: string;
   /** Contact's middle name / tussenvoegsel. */
@@ -105,8 +105,8 @@ export interface RegisterContactInput {
 export interface RegisterCustomerInput {
   /** Login email for the new customer. */
   email: string;
-  /** Initial account password. */
-  password: string;
+  /** Initial account password. Omit to let the customer set one via a password-reset link. */
+  password?: string;
   /** Customer's first name. */
   firstName: string;
   /** Customer's middle name / tussenvoegsel. */
@@ -173,17 +173,19 @@ export interface UseAuthReturn {
   magicLogin: (token: string) => Promise<Result<AuthSuccess, string>>;
   /** Issues a magic token for a contact/customer (authenticated); its `id` is embedded in a magic-login link. */
   createMagicToken: (input: MagicTokenCreateInput) => Promise<Result<MagicToken, string>>;
-  /** Registers a B2B contact (and optionally a company + addresses); `autoLogin` keeps the session. */
+  /** Registers a B2B contact (and optionally a company + addresses); `autoLogin` keeps the session. Without a password it never logs in. */
   registerContact: (
     input: RegisterContactInput,
     preferredLanguage?: string,
     autoLogin?: boolean,
+    sendWelcomeEmail?: boolean,
   ) => Promise<Result<AuthSuccess, string>>;
-  /** Registers a B2C customer (and optionally addresses); `autoLogin` keeps the session. */
+  /** Registers a B2C customer (and optionally addresses); `autoLogin` keeps the session. Without a password it never logs in. */
   registerCustomer: (
     input: RegisterCustomerInput,
     preferredLanguage?: string,
     autoLogin?: boolean,
+    sendWelcomeEmail?: boolean,
   ) => Promise<Result<AuthSuccess, string>>;
   /** Triggers a password-reset email for the given address. */
   forgotPassword: (email: string) => Promise<Result<void, string>>;
@@ -385,6 +387,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
     input: RegisterContactInput,
     preferredLanguage = language,
     autoLogin = true,
+    sendWelcomeEmail = true,
   ): Promise<Result<AuthSuccess, string>> => {
     setLoading(true);
     setError(null);
@@ -414,7 +417,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
       const contactInput: ContactRegisterInput = {
         contactRegisterInput: {
           email: input.email,
-          password: input.password,
+          ...(input.password && { password: input.password }),
           firstName: input.firstName,
           ...(input.middleName && { middleName: input.middleName }),
           lastName: input.lastName,
@@ -439,13 +442,23 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
       // is defensive in case a future SDK change starts throwing on partials.
       let registeredContactId: number | undefined;
       let registerAccessToken: string | undefined;
+      let registerError: unknown;
       try {
         const registerResult = await userService.registerContact(contactInput);
         registeredContactId = (registerResult?.contact as unknown as Contact | undefined)?.contactId;
         registerAccessToken = registerResult?.session?.accessToken;
-      } catch {
+      } catch (e) {
         // Swallow: contact creation succeeded server-side; the only failing
         // sub-selection is the favoriteLists field, which is empty for new users.
+        registerError = e;
+      }
+
+      // Without a password there is no login() to fall back on, so fail loudly.
+      if (!input.password) {
+        if (!registeredContactId) throw registerError ?? new Error('Registration failed');
+        if (input.street && companyId && !registerAccessToken) {
+          throw new Error('Registration returned no session to create the addresses');
+        }
       }
 
       // Authenticate company-address creation with the token from the register
@@ -512,7 +525,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         }
       }
 
-      if (registeredContactId) {
+      if (sendWelcomeEmail && registeredContactId) {
         try {
           await userService.triggerContactSendWelcomeEmailEvent({
             contactId: registeredContactId,
@@ -524,9 +537,10 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         }
       }
 
-      if (!autoLogin) {
+      if (!autoLogin || !input.password) {
         // Address creation used the register-session token (set as the in-memory
-        // Bearer header above). The caller asked not to stay logged in, so strip
+        // Bearer header above). The caller asked not to stay logged in (or there's
+        // no password to log in with), so strip
         // that header and notify the host. Nothing was persisted to localStorage,
         // so there's no setAccessToken/localStorage cleanup to do.
         const cfg = graphqlClient.getConfig();
@@ -558,6 +572,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
     input: RegisterCustomerInput,
     preferredLanguage = language,
     autoLogin = true,
+    sendWelcomeEmail = true,
   ): Promise<Result<AuthSuccess, string>> => {
     setLoading(true);
     setError(null);
@@ -568,7 +583,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
       const customerInput: CustomerRegisterInput = {
         customerRegisterInput: {
           email: input.email,
-          password: input.password,
+          ...(input.password && { password: input.password }),
           firstName: input.firstName,
           ...(input.middleName && { middleName: input.middleName }),
           lastName: input.lastName,
@@ -578,15 +593,33 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         },
         customerAttributesInput: {},
       };
-      await userService.registerCustomer(customerInput);
+      const registerResult = await userService.registerCustomer(customerInput);
 
-      const loginResult = await login(input.email, input.password);
-      if (!loginResult.ok) return loginResult;
-      const loggedInUser = loginResult.data.user;
+      let customerId: number | undefined;
+      let loginData: AuthSuccess | undefined;
+      if (input.password) {
+        const loginResult = await login(input.email, input.password);
+        if (!loginResult.ok) return loginResult;
+        loginData = loginResult.data;
+        const loggedInUser = loginData.user;
+        if (isCustomer(loggedInUser ?? null)) customerId = (loggedInUser as Customer).customerId;
+      } else {
+        // No password, so no login(): the register response carries the id and a session.
+        customerId = (registerResult?.customer as unknown as Customer | undefined)?.customerId;
+        const registerAccessToken = registerResult?.session?.accessToken;
+        if (!customerId) throw new Error('Registration failed');
+        if (input.street) {
+          if (!registerAccessToken) throw new Error('Registration returned no session to create the addresses');
+          // In-memory only, as in the contact flow — never setAccessToken().
+          const cfg = graphqlClient.getConfig();
+          graphqlClient.updateConfig({
+            headers: { ...cfg.headers, Authorization: `Bearer ${registerAccessToken}` },
+          });
+        }
+      }
 
       let addressesCreated = false;
-      if (input.street && isCustomer(loggedInUser ?? null)) {
-        const customer = loggedInUser as Customer;
+      if (input.street && customerId) {
         const invoiceAddress: CustomerAddressCreateInput = {
           firstName: input.firstName,
           lastName: input.lastName,
@@ -599,7 +632,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
           country: input.country ?? 'NL',
           type: AddressType.invoice,
           isDefault: YesNo.Y,
-          customerId: customer.customerId,
+          customerId,
         };
         await addressService.createCustomerAddress(invoiceAddress);
         addressesCreated = true;
@@ -627,16 +660,16 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
             country: input.deliveryCountry ?? 'NL',
             type: AddressType.delivery,
             isDefault: YesNo.Y,
-            customerId: customer.customerId,
+            customerId,
           };
           await addressService.createCustomerAddress(deliveryAddress);
         }
       }
 
-      if (isCustomer(loggedInUser ?? null)) {
+      if (sendWelcomeEmail && customerId) {
         try {
           await userService.triggerCustomerSendWelcomeEmailEvent({
-            customerId: (loggedInUser as Customer).customerId,
+            customerId,
             language: preferredLanguage,
             ...(configuration?.channelId && { channelId: configuration.channelId }),
           });
@@ -645,8 +678,8 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         }
       }
 
-      if (!autoLogin) {
-        // Address creation needed the customerId from login(); now drop the
+      if (!autoLogin || !loginData) {
+        // Address creation needed the customerId; now drop the
         // session so the caller doesn't see this as a logged-in flow.
         // clearAccessToken() removes localStorage['access_token']; also strip
         // the in-memory Bearer header set during the implicit login above.
@@ -673,13 +706,13 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
           };
           const refreshedViewer = await userService.getViewer(viewerInput);
           const refreshedUser = refreshedViewer as Contact | Customer;
-          return ok({ ...loginResult.data, user: refreshedUser });
+          return ok({ ...loginData, user: refreshedUser });
         } catch {
-          // Fall through to original loginResult — addresses still exist
+          // Fall through to the login() result — addresses still exist
           // server-side; only the local snapshot is stale.
         }
       }
-      return loginResult;
+      return ok(loginData);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Registration failed';
       setError(msg);

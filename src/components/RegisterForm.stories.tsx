@@ -25,3 +25,12 @@ export const CustomCopy: Story = {
     subtitle: 'Join us — it only takes a minute.',
   },
 };
+
+/** Reviewed sign-up: no password and no welcome email; the backoffice sends a set-password link on approval. */
+export const WithoutPassword: Story = {
+  args: {
+    showPassword: false,
+    sendWelcomeEmail: false,
+    labels: { successMessage: 'Thanks! We will review your application and email you a link to set your password.' },
+  },
+};

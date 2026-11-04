@@ -61,6 +61,20 @@ export interface RegisterFormProps {
   automaticLogin?: boolean;
 
   /**
+   * When false the password fields are left out and the account is created
+   * without a password; the user sets one later via a password-reset link.
+   * Registration then never logs in, whatever `automaticLogin` says.
+   * @default true
+   */
+  showPassword?: boolean;
+
+  /**
+   * When false no welcome email is sent after registration.
+   * @default true
+   */
+  sendWelcomeEmail?: boolean;
+
+  /**
    * Labels for the registration form fields.
    *
    * Available keys:
@@ -175,6 +189,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
   const personalDetailsTitle = props.labels?.personalDetailsTitle || 'Your details';
   const billingAddressTitle = props.labels?.billingAddressTitle || 'Billing address';
   const deliveryAddressTitle = props.labels?.deliveryAddressTitle || 'Delivery address';
+  const showPassword = props.showPassword !== false;
   const passwordTitle = props.labels?.passwordTitle || 'Password';
   const sameAsDeliveryLabel =
     props.labels?.sameAsDelivery || 'Delivery address is the same as billing address';
@@ -224,7 +239,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
       setError(selectUserTypeText);
       return;
     }
-    if (password !== confirmPassword) {
+    if (showPassword && password !== confirmPassword) {
       setError(passwordMismatchText);
       return;
     }
@@ -234,12 +249,13 @@ function RegisterForm(rawProps: RegisterFormProps) {
     }
     setError('');
 
-    const autoLogin = props.automaticLogin !== false;
+    const autoLogin = props.automaticLogin !== false && showPassword;
+    const sendWelcomeEmail = props.sendWelcomeEmail !== false;
     let result;
     if (isContact) {
       result = await registerContact({
         email,
-        password,
+        ...(showPassword && { password }),
         firstName,
         middleName,
         lastName,
@@ -261,11 +277,11 @@ function RegisterForm(rawProps: RegisterFormProps) {
         deliveryCity: sameAsDelivery ? billingCity : deliveryCity,
         deliveryCountry: sameAsDelivery ? billingCountry : deliveryCountry,
         sameDeliveryAsBilling: sameAsDelivery,
-      }, props.preferredLanguage || 'NL', autoLogin);
+      }, props.preferredLanguage || 'NL', autoLogin, sendWelcomeEmail);
     } else {
       result = await registerCustomer({
         email,
-        password,
+        ...(showPassword && { password }),
         firstName,
         middleName,
         lastName,
@@ -284,7 +300,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
         deliveryCity: sameAsDelivery ? billingCity : deliveryCity,
         deliveryCountry: sameAsDelivery ? billingCountry : deliveryCountry,
         sameDeliveryAsBilling: sameAsDelivery,
-      }, props.preferredLanguage || 'NL', autoLogin);
+      }, props.preferredLanguage || 'NL', autoLogin, sendWelcomeEmail);
     }
 
     if (result.ok) {
@@ -863,6 +879,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
               </div>
             ) : null}
           </div>
+          {showPassword ? (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2">{passwordTitle}</h3>
             <div className="space-y-2">
@@ -907,6 +924,7 @@ function RegisterForm(rawProps: RegisterFormProps) {
               />
             </div>
           </div>
+          ) : null}
           {error ? (
             <div className="propeller-register-form__error text-sm text-destructive bg-destructive/10 p-3 rounded-control">{error}</div>
           ) : null}
