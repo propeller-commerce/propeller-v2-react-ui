@@ -8,6 +8,18 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.3] - 2026-11-12
+
+### Fixed
+
+- **`ForgotPassword` no longer tells visitors which addresses have an
+  account.** The API fails the reset request for an unknown address only, and
+  the form showed its "we couldn't find an account" error on failure, so it
+  confirmed registered addresses. Every submit now shows the neutral
+  confirmation ("If an account exists with this email, …").
+  `afterForgotPassword(result)` still reports the real outcome to the host.
+  The `labels.emailNotFound` label is no longer used.
+
 ## [0.34.2] - 2026-11-12
 
 ### Fixed
