@@ -62,9 +62,12 @@ describe('React hooks — module-evaluation SSR safety', () => {
     ['useSpareParts', () => import('../useSpareParts')],
   ];
 
+  // The first import pays for transforming the whole module graph: 6-10 s on a
+  // loaded machine (2026-11-12), past vitest's 5 s default, so it failed as a
+  // timeout rather than as an SSR problem.
   for (const [name, mod] of modules) {
     it(`${name} imports without throwing`, async () => {
       await expect(mod()).resolves.toBeDefined();
-    });
+    }, 30_000);
   }
 });
