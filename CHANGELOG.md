@@ -8,6 +8,19 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.2] - 2026-11-12
+
+### Fixed
+
+- **`OrderTotals` subtotal no longer includes the shipping costs (PWP-1070).**
+  The subtotal was `total.gross`, the order total excl. VAT, which already
+  holds the shipping and transaction costs, so both were counted twice and the
+  subtotal equalled "Total excl. VAT". It is now `total.gross` minus the
+  shipping and transaction costs, plus the order discount: `discountValue` for
+  an amount discount, the order lines (incentive lines left out) for a
+  percentage one. "Subtotal with discount" is `total.gross` minus the costs;
+  it used to take the discount off a total that already had it.
+
 ## [0.34.1] - 2026-11-12
 
 ### Fixed

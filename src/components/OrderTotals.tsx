@@ -9,6 +9,7 @@ import { Order, OrderDiscountType, OrderTotalTaxPercentage } from '@propeller-co
 import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatVatRate, vatRate } from '../composables/shared/utils/vatRate';
+import { orderSubtotals } from '../composables/shared/utils/orderSubtotals';
 
 export interface OrderTotalsProps {
   /**
@@ -72,7 +73,7 @@ function OrderTotals(props: OrderTotalsProps) {
     if (props.formatPrice) return props.formatPrice(price);
     return formatPrice(price || 0, { symbol: props.currency ?? '€', locale: localeForLanguage(props.language) });
   }
-  const subtotal = total?.gross || 0;
+  const { subtotal, subtotalWithDiscount } = orderSubtotals(props.order);
   const hasDiscount = !!total
     && total.discountType !== OrderDiscountType.N
     && total.discountValue > 0;
@@ -86,7 +87,6 @@ function OrderTotals(props: OrderTotalsProps) {
     }
     return '-' + formatItemPrice(total.discountValue);
   }
-  const subtotalWithDiscount = (total?.gross || 0) - (total?.discountValue || 0);
   const hasTransactionCosts = (paymentData?.gross ?? 0) > 0;
   const transactionCosts = Number(paymentData?.gross || 0);
   const hasShippingCosts = (postageData?.gross ?? 0) > 0;
