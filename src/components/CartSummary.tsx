@@ -14,6 +14,7 @@ import { useInfraProps } from '../composables/react/useInfraProps';
 import { getLabel, localeForLanguage, isOverAuthorizationLimit } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { formatVatRate, vatRate } from '../composables/shared/utils/vatRate';
 
 export interface CartSummaryProps {
   /**
@@ -175,7 +176,7 @@ function CartSummary(rawProps: CartSummaryProps) {
   }
   function taxLevels(): NonNullable<Cart['taxLevels']> {
     const levels = props.cart?.taxLevels || [];
-    return levels.filter((t) => t.taxPercentage > 0 && t.price > 0);
+    return levels.filter((t) => vatRate(t) > 0 && t.price > 0);
   }
   function totalVat(): number {
     const net = props.cart?.total?.totalNet || 0;
@@ -267,7 +268,7 @@ function CartSummary(rawProps: CartSummaryProps) {
           {taxLevels()?.map((tax, index) => (
             <div className="propeller-cart-summary__row flex justify-between text-muted-foreground text-sm" key={index} data-row="vat-line">
               <span className="propeller-cart-summary__label">
-                {tax.taxPercentage}% {getLabel(props.labels, 'vat', 'VAT')}:
+                {formatVatRate(vatRate(tax), props.language)}% {getLabel(props.labels, 'vat', 'VAT')}:
               </span>
               <span className="propeller-cart-summary__value">{formatItemPrice(Number(tax.price))}</span>
             </div>

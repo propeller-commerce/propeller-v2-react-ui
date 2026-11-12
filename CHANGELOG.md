@@ -8,6 +8,22 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.1] - 2026-11-12
+
+### Fixed
+
+- **VAT lines show the exact rate (PWP-1065).** `CartSummary`, `OrderTotals`
+  and `PurchaseAuthorizationRequests` printed the API's rounded rate, so the
+  Swiss 8.1% read "8%", and a rate under 1% rounded to 0 and its VAT line was
+  dropped. They now read `taxPercentageDecimal` / `percentageDecimal` (SDK
+  0.19.0) and print it in the storefront's number format ("8,1%" in NL). With
+  an older SDK they fall back to the rounded rate.
+
+### Changed
+
+- devDependency `@propeller-commerce/propeller-sdk-v2` `^0.19.0`. The SDK peer
+  stays `*`.
+
 ## [0.34.0] - 2026-11-04
 
 ### Added

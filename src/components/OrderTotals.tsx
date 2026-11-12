@@ -8,6 +8,7 @@ import * as React from 'react';
 import { Order, OrderDiscountType, OrderTotalTaxPercentage } from '@propeller-commerce/propeller-sdk-v2';
 import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
+import { formatVatRate, vatRate } from '../composables/shared/utils/vatRate';
 
 export interface OrderTotalsProps {
   /**
@@ -92,7 +93,7 @@ function OrderTotals(props: OrderTotalsProps) {
   const shippingCosts = Number(postageData?.gross || 0);
   const totalExclVat = total?.gross || 0;
   const taxPercentages: OrderTotalTaxPercentage[] = (total?.taxPercentages || [])
-    .filter((tax) => tax.percentage > 0 && tax.total > 0);
+    .filter((tax) => vatRate(tax) > 0 && tax.total > 0);
   const totalInclVat = total?.net || 0;
   const totalVat = taxPercentages.reduce((sum, t) => sum + Number(t.total || 0), 0);
   return (
@@ -138,7 +139,7 @@ function OrderTotals(props: OrderTotalsProps) {
           {taxPercentages.map((tax, index) => (
             <div className="propeller-order-totals__row flex justify-between text-muted-foreground text-sm" key={index} data-row="vat-line">
               <span className="propeller-order-totals__label">
-                {tax.percentage}% {getLabel(props.labels, 'vat', 'VAT')}:
+                {formatVatRate(vatRate(tax), props.language)}% {getLabel(props.labels, 'vat', 'VAT')}:
               </span>
               <span className="propeller-order-totals__value">{formatItemPrice(Number(tax.total))}</span>
             </div>

@@ -15,6 +15,7 @@ import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-co
 import { getLanguageString } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as _formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
+import { formatVatRate, vatRate } from '../composables/shared/utils/vatRate';
 
 export interface PurchaseAuthorizationRequestsProps {
   /** GraphQL client for the Propeller SDK. Resolved from PropellerProvider when omitted. */
@@ -375,11 +376,11 @@ function PurchaseAuthorizationRequests(rawProps: PurchaseAuthorizationRequestsPr
                           <span>{formatPrice(selectedCart?.total?.totalGross ?? 0)}</span>
                         </div>
                         {(selectedCart?.taxLevels ?? [])
-                          .filter((t) => t.taxPercentage > 0 && t.price > 0)
+                          .filter((t) => vatRate(t) > 0 && t.price > 0)
                           .map((tax, index) => (
                             <div className="flex justify-between text-muted-foreground" key={index}>
                               <span>
-                                {tax.taxPercentage}% {getLabel(props.labels, 'vat', 'VAT')}:
+                                {formatVatRate(vatRate(tax), props.language)}% {getLabel(props.labels, 'vat', 'VAT')}:
                               </span>
                               <span>{formatPrice(Number(tax.price))}</span>
                             </div>
