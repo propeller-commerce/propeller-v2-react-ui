@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { Bundle, BundleCondition, BundleItem, Cart, Contact, Customer, GraphQLClient, Product } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductBundles } from '../composables/react/useProductBundles';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel, getLocalizedValue, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, getLocalizedValue, isContentHidden, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice as formatPriceHelper } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
 import { PropellerImg } from './PropellerImg';
@@ -44,7 +44,7 @@ export interface ProductBundlesProps {
 
   /**
    * Controls portal visibility mode.
-   * 'semi-closed' — prices and add-to-cart are hidden for anonymous users.
+   * 'semi-closed' / 'closed' — prices and add-to-cart are hidden for anonymous users.
    * Defaults to 'open'.
    */
   portalMode?: string;
@@ -205,8 +205,8 @@ function ProductBundles(rawProps: ProductBundlesProps) {
   const includeTax = props.includeTax !== undefined ? !!props.includeTax : false;
   const showItems = props.showIndividualItems !== undefined ? !!props.showIndividualItems : true;
   const layout = (props.layout as string) || 'horizontal';
-  const isAnonymous = !props.user;
-  const hidePrices = (props.portalMode as string) === 'semi-closed' && isAnonymous;
+  // The shared rule: semi-closed and closed portals hide prices from guests.
+  const hidePrices = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
 
   function hasDiscount(bundle: Bundle): boolean {
     const current = getBundlePrice(bundle, includeTax);

@@ -309,12 +309,17 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
   ): Promise<Result<AuthSuccess, string>> => {
     setLoading(true);
     setError(null);
+    let bearerSet = false;
     try {
       const loginResult = await new MagicTokenService(graphqlClient).magicTokenLogin(token);
       const session = loginResult?.session;
       const accessToken = session?.accessToken;
       const refreshToken = session?.refreshToken;
       const expiresAt = session?.expirationTime;
+      // A failed exchange can come back as `magicTokenLogin: null` with errors (the SDK
+      // returns null on partial errors) instead of a throw. No session = failure, never an
+      // anonymous "success" that sends the visitor on to the redirect.
+      if (!accessToken) throw new Error('Magic-token login failed');
       if (accessToken) {
         // In-memory Bearer only — never graphqlClient.setAccessToken(), whose SDK
         // default resolver persists the JWT to localStorage['access_token'] (the
@@ -324,6 +329,7 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         graphqlClient.updateConfig({
           headers: { ...cfg.headers, Authorization: `Bearer ${accessToken}` },
         });
+        bearerSet = true;
         onAuthHeaderUpdate?.(accessToken);
       }
       const userService = createServices(graphqlClient).user;
@@ -346,9 +352,18 @@ export function useAuth(options: UseAuthOptions): UseAuthReturn {
         }),
       };
       const viewer = await userService.getViewer(viewerInput);
+      // A token with no viewer behind it is no login either: same failure as no session.
+      if (!viewer) throw new Error('Magic-token login failed');
       const user = viewer as Contact | Customer;
       return ok({ user, accessToken, refreshToken, expiresAt });
     } catch (e: unknown) {
+      if (bearerSet) {
+        // Leave no half session: drop the Bearer set above and tell the host.
+        const headers = { ...graphqlClient.getConfig().headers };
+        delete headers['Authorization'];
+        graphqlClient.updateConfig({ headers });
+        onAuthHeaderUpdate?.('');
+      }
       const msg = e instanceof Error ? e.message : 'Magic-token login failed';
       setError(msg);
       return err(msg);

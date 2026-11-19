@@ -49,10 +49,10 @@ function makeFakeClient() {
 }
 
 /** Capture the hook's returned actions from a server render. */
-function renderUseAuth(client: unknown): UseAuthReturn {
+function renderUseAuth(client: unknown, onAuthHeaderUpdate?: (token: string) => void): UseAuthReturn {
   let captured: UseAuthReturn | undefined;
   function Probe() {
-    captured = useAuth({ graphqlClient: client as never });
+    captured = useAuth({ graphqlClient: client as never, onAuthHeaderUpdate });
     return null;
   }
   renderToString(React.createElement(Probe));
@@ -98,6 +98,72 @@ describe('useAuth — magicLogin', () => {
     if (res.ok) return;
     expect(typeof res.error).toBe('string');
     expect(res.error.length).toBeGreaterThan(0);
+  });
+});
+
+describe('useAuth — magicLogin partial-error failure', () => {
+  it('returns err and never looks up a viewer when the exchange answers null with errors', async () => {
+    const { client, execute, calls, headers } = makeFakeClient();
+    execute.mockResolvedValueOnce({ data: { magicTokenLogin: null }, errors: [{ message: 'token expired' }] });
+    const auth = renderUseAuth(client);
+
+    const res = await auth.magicLogin('expired');
+
+    expect(res.ok).toBe(false);
+    expect(calls.some((c) => c.operationName === 'viewer')).toBe(false);
+    expect(headers().Authorization).toBeUndefined();
+  });
+});
+
+describe('useAuth — magicLogin without a viewer', () => {
+  /** The exchange succeeds; the viewer lookup then answers with `answer()`. */
+  function clientWithViewer(answer: () => Promise<unknown>) {
+    const fake = makeFakeClient();
+    const base = fake.execute.getMockImplementation()!;
+    fake.execute.mockImplementation(async (args: { operationName: string; variables: unknown }) => {
+      if (args.operationName !== 'viewer') return base(args);
+      fake.calls.push(args);
+      return answer();
+    });
+    return fake;
+  }
+
+  it('fails with the no-session error and drops the Bearer when the viewer is null', async () => {
+    const { client, calls, headers } = clientWithViewer(async () => ({ data: { viewer: null } }));
+    const onAuthHeaderUpdate = vi.fn();
+    const auth = renderUseAuth(client, onAuthHeaderUpdate);
+
+    const res = await auth.magicLogin('tok-123');
+
+    expect(calls.some((c) => c.operationName === 'viewer')).toBe(true);
+    expect(res).toEqual({ ok: false, error: 'Magic-token login failed' });
+    expect(headers().Authorization).toBeUndefined();
+    expect(onAuthHeaderUpdate).toHaveBeenLastCalledWith('');
+  });
+
+  it('returns the same error as the no-session case', async () => {
+    const noSession = makeFakeClient();
+    noSession.execute.mockResolvedValueOnce({ data: { magicTokenLogin: null }, errors: [{ message: 'expired' }] });
+    const noViewer = clientWithViewer(async () => ({ data: { viewer: null } }));
+
+    const a = await renderUseAuth(noSession.client).magicLogin('t');
+    const b = await renderUseAuth(noViewer.client).magicLogin('t');
+
+    expect(b).toEqual(a);
+  });
+
+  it('drops the Bearer when the viewer lookup throws', async () => {
+    const { client, headers } = clientWithViewer(async () => {
+      throw new Error('network down');
+    });
+    const onAuthHeaderUpdate = vi.fn();
+    const auth = renderUseAuth(client, onAuthHeaderUpdate);
+
+    const res = await auth.magicLogin('tok-123');
+
+    expect(res.ok).toBe(false);
+    expect(headers().Authorization).toBeUndefined();
+    expect(onAuthHeaderUpdate).toHaveBeenLastCalledWith('');
   });
 });
 

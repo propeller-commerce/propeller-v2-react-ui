@@ -8,6 +8,45 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.5] - 2026-11-19
+
+### Dependencies
+
+- `@propeller-commerce/propeller-v2-core-ui` ^0.13.2: guests in closed portals no longer see prices
+  (`isContentHidden`), and JSON-LD escapes `<`, `>`, `&`, U+2028 and U+2029.
+
+### Fixed
+- `magicLogin` returns an error when the token exchange yields no session (the SDK answers `null` on partial errors). It used to look up an anonymous viewer and report success, so an expired or forged magic link landed on its redirect instead of the login page.
+
+### Security
+
+- **`ProductBundles` hides prices from guests in `closed` portals too**
+  (security review #4). It had its own `portalMode === 'semi-closed'` check;
+  it now calls core-ui's `isContentHidden(portalMode, user, isAuthenticated)`
+  like every other catalog component. The `closed` rule itself (and the
+  stricter JSON-LD escaping in `safeJsonStringify`) lives in core-ui and
+  reaches this package with the next `@propeller-commerce/propeller-v2-core-ui`
+  pin bump.
+- **`SearchBar` hides autosuggest prices from guests in `semi-closed` and
+  `closed` portals** (security review #4). The dropdown showed every result's
+  price (`showPrice` defaults to `true`) whatever the portal mode. It now
+  applies `isContentHidden(portalMode, user, isAuthenticated)`, resolved from
+  `PropellerProvider` like the other catalog components: for a hidden viewer
+  there is no price cell, no "Price on request" label and no `renderPrice`
+  call. New optional props `portalMode` and `isAuthenticated`.
+- **`magicLogin` fails when the viewer lookup returns nothing** (security review
+  #20). After a successful token exchange a `null` viewer still reported
+  success with no user. It now returns the same error as the no-session case
+  (`'Magic-token login failed'`), and when the lookup fails (null or a throw) it
+  removes the in-memory Bearer it had set and calls `onAuthHeaderUpdate('')`,
+  so no half session is left behind.
+
+### Changed
+- Dev only: `happy-dom` joins the dev dependencies for component tests that must
+  mount (the SearchBar dropdown opens in a client effect). Such a file opts in
+  with `// @vitest-environment happy-dom`; the default test environment stays
+  `node`.
+
 ## [0.34.4] - 2026-11-19
 
 ### Fixed

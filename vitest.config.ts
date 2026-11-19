@@ -12,6 +12,8 @@ import { defineConfig } from 'vitest/config';
  * Component tests (which need a mock-SDK + a PropellerProvider wrapper, and
  * therefore the `jsdom` environment) are intentionally NOT in scope here —
  * see the project notes on the deferred F2 / component-test work.
+ * A test that must mount (state set in an effect, e.g. the SearchBar
+ * dropdown) opts in per file with `// @vitest-environment happy-dom`.
  */
 export default defineConfig({
   // Match the build (tsup sets `jsx: 'automatic'`). Vitest's esbuild default is

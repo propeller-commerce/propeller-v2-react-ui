@@ -11,7 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { GraphQLClient, Product, Cluster, Contact, Customer } from '@propeller-commerce/propeller-sdk-v2';
 import { useProductSearch } from '../composables/react/useProductSearch';
 import { useInfraProps } from '../composables/react/useInfraProps';
-import { getLabel, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
+import { getLabel, isContentHidden, localeForLanguage } from '@propeller-commerce/propeller-v2-core-ui';
 import { getLocalizedValue } from '@propeller-commerce/propeller-v2-core-ui';
 import { formatPrice } from '@propeller-commerce/propeller-v2-core-ui';
 import { cn } from '../composables/shared/utils/cn';
@@ -53,6 +53,19 @@ export interface SearchBarProps {
 
   /** The currently logged in user (Contact or Customer) */
   user?: Contact | Customer | null;
+
+  /**
+   * Portal visibility mode. In a 'semi-closed' or 'closed' portal the result
+   * prices (and a custom `renderPrice`) are hidden from anonymous visitors.
+   * Resolved from PropellerProvider when omitted; defaults to 'open'.
+   */
+  portalMode?: string;
+
+  /**
+   * Whether a session exists, independent of whether `user` has loaded yet.
+   * Resolved from PropellerProvider when omitted.
+   */
+  isAuthenticated?: boolean;
 
   /** Language code for search requests */
   language?: string;
@@ -102,6 +115,7 @@ export interface SearchBarProps {
    * Set `false` to hide prices entirely in the dropdown — e.g. a B2B
    * contract-catalogue context where prices are quote-only and shouldn't
    * appear in the live preview. Ignored when {@link renderPrice} is provided.
+   * Guests in a semi-closed or closed portal never see prices.
    */
   showPrice?: boolean;
 
@@ -110,7 +124,8 @@ export interface SearchBarProps {
    * this fully overrides the default price rendering (and `showPrice`) — return
    * any node (e.g. a "Price by quotation" label for a contract catalogue), or
    * `null` to render nothing for that result. Keeps price/quotation wording
-   * app-specific rather than baked into the package.
+   * app-specific rather than baked into the package. Not called for guests in
+   * a semi-closed or closed portal.
    */
   renderPrice?: (result: SearchBarResult) => React.ReactNode;
 
@@ -290,6 +305,8 @@ function SearchBar(rawProps: SearchBarProps) {
   // Match ProductPrice: the toggle picks which value leads. SDK mapping \u2014
   // net = incl. VAT, gross = excl. VAT. Default (includeTax undefined) is excl.
   const useTax = !!props.includeTax;
+  // The shared rule: semi-closed and closed portals hide prices from guests.
+  const hidePrices = isContentHidden(props.portalMode, props.user, props.isAuthenticated);
   function leadingPrice(result: SearchBarResult): number {
     return useTax ? (result.priceNet ?? result.price ?? 0) : (result.priceGross ?? result.price ?? 0);
   }
@@ -465,7 +482,7 @@ function SearchBar(rawProps: SearchBarProps) {
                         <div className="propeller-search-bar__result-sku text-sm text-muted-foreground">SKU: {result.sku}</div>
                       ) : null}
                     </div>
-                    {props.renderPrice ? (
+                    {hidePrices ? null : props.renderPrice ? (
                       props.renderPrice(result)
                     ) : props.showPrice !== false && result.priceOnRequest ? (
                       <div className="propeller-search-bar__result-price text-sm text-foreground flex-shrink-0 text-right">
