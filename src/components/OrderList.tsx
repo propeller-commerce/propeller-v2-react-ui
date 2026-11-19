@@ -274,7 +274,7 @@ function OrderList(rawProps: OrderListProps) {
               />
             </div>
           ) : null}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+          <div className="propeller-order-list__filter-fields grid grid-cols-1 md:grid-cols-2 gap-4">
             {searchFields()
               .filter((f: string) => f !== 'term')
               ?.map((field) => (

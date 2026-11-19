@@ -329,6 +329,16 @@ function useProductGrid(): ProductGridContextValue {
   return ctx;
 }
 
+// The --cols-N modifier carries the breakpoints in styles.css, so a host's own Tailwind sheet can't flatten them.
+function gridColsClass(cols: number): string {
+  if (cols === 1) return 'flex flex-col gap-4';
+  if (cols === 2) return 'grid grid-cols-2 gap-3 sm:gap-6 auto-rows-fr propeller-product-grid__grid--cols-2';
+  if (cols === 4) return 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 auto-rows-fr propeller-product-grid__grid--cols-4';
+  if (cols === 5) return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 auto-rows-fr propeller-product-grid__grid--cols-5';
+  if (cols === 6) return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6 auto-rows-fr propeller-product-grid__grid--cols-6';
+  return 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 auto-rows-fr propeller-product-grid__grid--cols-3';
+}
+
 /**
  * Renders a responsive grid of product and cluster cards with skeleton
  * loading, empty state and pagination. Supports a built-in layout or a
@@ -382,13 +392,7 @@ function ProductGrid(rawProps: ProductGridProps) {
   }
 
   function getGridColsClass(): string {
-    const cols = (props.columns as number) || 3;
-    if (cols === 1) return 'flex flex-col gap-4';
-    if (cols === 2) return 'grid grid-cols-2 gap-3 sm:gap-6 auto-rows-fr';
-    if (cols === 4) return 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 auto-rows-fr';
-    if (cols === 5) return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 auto-rows-fr';
-    if (cols === 6) return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6 auto-rows-fr';
-    return 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 auto-rows-fr';
+    return gridColsClass((props.columns as number) || 3);
   }
 
   useEffect(() => {
@@ -627,18 +631,7 @@ function ProductGridItems(props: {
   const ClusterCardImpl = (gridConfig.clusterCardComponent ?? ClusterCard) as React.ComponentType<
     { cluster: Cluster } & Record<string, unknown>
   >;
-  const gridClass =
-    cols === 1
-      ? 'flex flex-col gap-4'
-      : cols === 2
-        ? 'grid grid-cols-2 gap-3 sm:gap-6 auto-rows-fr'
-        : cols === 4
-          ? 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 auto-rows-fr'
-          : cols === 5
-            ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6 auto-rows-fr'
-            : cols === 6
-              ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-6 auto-rows-fr'
-              : 'grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 auto-rows-fr';
+  const gridClass = gridColsClass(cols);
 
   if (isLoading) {
     const skeletonCount = cols === 2 ? 4 : cols === 4 ? 8 : cols === 5 ? 10 : cols === 6 ? 12 : 6;

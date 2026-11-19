@@ -427,7 +427,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
             <div
               aria-busy="true"
               data-loading="true"
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+              className="propeller-machine-grid__grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
             >
               {Array.from(
                 { length: Math.min(rawProps.sourceIds?.length ?? 0, MAX_ROOT_SKELETONS) },
@@ -440,7 +440,7 @@ export default function MachineGrid(rawProps: MachineGridProps) {
             {getLabel(rawProps.machineCardLabels, 'noMachines', 'No machines found.')}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="propeller-machine-grid__grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {cards.map(({ machine: m, href }) => (
               <MachineCard
                 key={m.id}

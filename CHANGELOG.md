@@ -8,6 +8,25 @@ once it reaches 1.0. Until then (the `0.x` line) the public API may change
 between minor versions; breaking changes are called out below and in
 [MIGRATION.md](./MIGRATION.md).
 
+## [0.34.4] - 2026-11-19
+
+### Fixed
+
+- **`ProductGrid` keeps its column count in a shop that runs its own
+  Tailwind.** The shop's stylesheet loads after the package's and re-emits
+  `.grid-cols-2` and `.gap-3`, which beat the package's `sm:`/`lg:` grid
+  utilities, so the 4- and 5-column grids stayed at 2 columns on desktop. The
+  grid now carries a `propeller-product-grid__grid--cols-N` class whose
+  breakpoints `styles.css` restates outside the utilities layer, as it already
+  does for the cards and the filter panel. Shops no longer need to safelist
+  the `lg:grid-cols-*` classes themselves.
+- **The other responsive grids keep their columns too, for the same reason.**
+  The carrier and payment-method choices in checkout, the machine list and
+  its parts in `MachineGrid`, the order details and addresses in
+  `OrderSummary` and the filter fields in `OrderList` stayed at their mobile
+  column count in such a shop. New BEM classes `propeller-machine-grid__grid`
+  and `propeller-order-list__filter-fields` mark the two grids that had none.
+
 ## [0.34.3] - 2026-11-12
 
 ### Fixed

@@ -186,6 +186,73 @@
   }
 }
 
+/* ProductGrid columns: a host sheet's plain `.grid-cols-2` / `.gap-3` loads
+ * later and beats the `sm:`/`lg:` utilities, so the breakpoints are restated
+ * here, outside the utilities layer. */
+@media (min-width: 40rem) {
+  .propeller-product-grid__grid--cols-2,
+  .propeller-product-grid__grid--cols-3,
+  .propeller-product-grid__grid--cols-4,
+  .propeller-product-grid__grid--cols-5,
+  .propeller-product-grid__grid--cols-6 {
+    gap: 1.5rem;
+  }
+
+  .propeller-product-grid__grid--cols-5,
+  .propeller-product-grid__grid--cols-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .propeller-product-grid__grid--cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .propeller-product-grid__grid--cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .propeller-product-grid__grid--cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .propeller-product-grid__grid--cols-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* The other responsive grids, restated for the same reason. */
+@media (min-width: 40rem) {
+  .propeller-cart-carriers__grid,
+  .propeller-cart-paymethods__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .propeller-machine-grid__grid,
+  .propeller-machine-children {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 48rem) {
+  .propeller-order-summary__meta,
+  .propeller-order-summary__addresses,
+  .propeller-order-list__filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .propeller-cart-carriers__grid,
+  .propeller-cart-paymethods__grid,
+  .propeller-machine-grid__grid,
+  .propeller-machine-children,
+  .propeller-order-summary__meta {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 /*
  * GridFiltersPanel — same cross-Tailwind cascade hardening as the cards, but
  * scoped to the `lg` (64rem) breakpoint the panel switches at. Below lg the
