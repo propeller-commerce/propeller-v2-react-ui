@@ -7,3 +7,6 @@ storybook-static
 .DS_Store
 .env
 .env.local
+
+# Personal Claude Code settings
+.claude/settings.local.json
